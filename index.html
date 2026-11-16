@@ -1,0 +1,2191 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.32">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>simu_spatial_test</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="simu_spatial_test_files/libs/clipboard/clipboard.min.js"></script>
+<script src="simu_spatial_test_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="simu_spatial_test_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="simu_spatial_test_files/libs/quarto-html/popper.min.js"></script>
+<script src="simu_spatial_test_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="simu_spatial_test_files/libs/quarto-html/anchor.min.js"></script>
+<link href="simu_spatial_test_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="simu_spatial_test_files/libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="simu_spatial_test_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="simu_spatial_test_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="simu_spatial_test_files/libs/bootstrap/bootstrap-bb462d781dde1847d9e3ccf7736099dd.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+</div>
+<main class="content" id="quarto-document-content">
+
+
+
+
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load packages</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>pck <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"sf"</span>,<span class="st">"rnaturalearth"</span>, <span class="st">"sp"</span>,</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>         <span class="st">"here"</span>, <span class="st">"spatstat"</span>, <span class="st">"gt"</span>, <span class="st">"viridis"</span>, <span class="st">"viridisLite"</span>, <span class="st">"scico"</span>, <span class="st">"patchwork"</span>,</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>         <span class="st">"tidyverse"</span>,<span class="st">"data.table"</span>,<span class="st">"countrycode"</span>,<span class="st">"CoordinateCleaner"</span>,<span class="st">"fixr"</span>,</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>         <span class="st">"INLA"</span>,<span class="st">"inlabru"</span>,<span class="st">"INLAspacetime"</span>,<span class="st">"broom"</span>,<span class="st">"matrixStats"</span>, <span class="st">"fmesher"</span>, <span class="st">"terra"</span>, <span class="st">"MASS"</span>) </span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">invisible</span>(<span class="fu">lapply</span>(pck, require, <span class="at">character.only =</span> <span class="cn">TRUE</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: sf</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Linking to GEOS 3.13.1, GDAL 3.11.4, PROJ 9.7.0; sf_use_s2() is TRUE</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: rnaturalearth</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: sp</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: here</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>here() starts at C:/Users/Lisa/Documents/PhD/simu_INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: spatstat</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: spatstat.data</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: spatstat.univar</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>spatstat.univar 3.1-5</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: spatstat.geom</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>spatstat.geom 3.6-1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: spatstat.random</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>spatstat.random 3.4-3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: spatstat.explore</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: nlme</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>spatstat.explore 3.6-0</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: spatstat.model</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: rpart</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>spatstat.model 3.5-0</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: spatstat.linnet</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>spatstat.linnet 3.4-0</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+spatstat 3.5-0 
+For an introduction to spatstat, type 'beginner' </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: gt</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in library(package, lib.loc = lib.loc, character.only = TRUE,
+logical.return = TRUE, : there is no package called 'gt'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: viridis</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: viridisLite</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: scico</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in library(package, lib.loc = lib.loc, character.only = TRUE,
+logical.return = TRUE, : there is no package called 'scico'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: patchwork</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'patchwork'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:spatstat.geom':
+
+    area</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: tidyverse</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ dplyr     1.1.4     ✔ readr     2.1.6
+✔ forcats   1.0.1     ✔ stringr   1.6.0
+✔ ggplot2   4.0.1     ✔ tibble    3.3.1
+✔ lubridate 1.9.4     ✔ tidyr     1.3.1
+✔ purrr     1.2.1     
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::collapse() masks nlme::collapse()
+✖ dplyr::filter()   masks stats::filter()
+✖ dplyr::lag()      masks stats::lag()
+ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors
+Loading required package: data.table
+
+
+Attaching package: 'data.table'
+
+
+The following objects are masked from 'package:lubridate':
+
+    hour, isoweek, mday, minute, month, quarter, second, wday, week,
+    yday, year
+
+
+The following objects are masked from 'package:dplyr':
+
+    between, first, last
+
+
+The following object is masked from 'package:purrr':
+
+    transpose
+
+
+The following object is masked from 'package:spatstat.geom':
+
+    shift
+
+
+Loading required package: countrycode
+
+Loading required package: CoordinateCleaner
+
+Loading required package: fixr</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'fixr' was built under R version 4.5.3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: INLA
+Loading required package: Matrix
+
+Attaching package: 'Matrix'
+
+The following objects are masked from 'package:tidyr':
+
+    expand, pack, unpack
+
+This is INLA_25.10.19 built 2025-10-19 19:10:20 UTC.
+ - See www.r-inla.org/contact-us for how to get help.
+ - List available models/likelihoods/etc with inla.list.models()
+ - Use inla.doc(&lt;NAME&gt;) to access documentation
+ - Consider upgrading R-INLA to testing[26.08.22] or stable[26.08.07] (require R-4.6)
+Loading required package: inlabru</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'inlabru' was built under R version 4.5.3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'inlabru'
+
+The following object is masked from 'package:data.table':
+
+    like
+
+Loading required package: INLAspacetime</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'INLAspacetime' was built under R version 4.5.3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Welcome to the INLAspacetime package!
+ More at eliaskrainski.github.io/INLAspacetime
+Loading required package: broom
+Loading required package: matrixStats
+
+Attaching package: 'matrixStats'
+
+The following object is masked from 'package:dplyr':
+
+    count
+
+Loading required package: fmesher</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'fmesher' was built under R version 4.5.3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: terra
+terra 1.8.86
+
+Attaching package: 'terra'
+
+The following object is masked from 'package:data.table':
+
+    shift
+
+The following object is masked from 'package:tidyr':
+
+    extract
+
+The following object is masked from 'package:patchwork':
+
+    area
+
+The following objects are masked from 'package:spatstat.geom':
+
+    area, delaunay, is.empty, rescale, rotate, shift, where.max,
+    where.min
+
+Loading required package: MASS</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'MASS' was built under R version 4.5.3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'MASS'
+
+The following object is masked from 'package:terra':
+
+    area
+
+The following object is masked from 'package:inlabru':
+
+    shrimp
+
+The following object is masked from 'package:dplyr':
+
+    select
+
+The following object is masked from 'package:patchwork':
+
+    area
+
+The following object is masked from 'package:spatstat.geom':
+
+    area</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Using latest release of INLA for occupancy functions for INLA</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>project_folder <span class="ot">=</span> here<span class="sc">::</span><span class="fu">here</span>()</span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a><span class="fu">inla.setOption</span>(<span class="at">inla.call=</span> <span class="fu">paste0</span>(project_folder, INLA_PATH))</span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>seed <span class="ot">=</span> <span class="dv">42</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p><strong>Context</strong></p>
+<p>We are using site-occupancy models to analyse large databases of occurences such as GBIF. We wanted to use the very nice implementation of spatial autocorrelation in INLA (Rue/lingrdren ?)</p>
+<p>We use the available vignettes, but we identified a systematic bias when modelling spatial autocorrelation.</p>
+<p>We start by using the simplest occupancy model possible, where <span class="math inline">\(z_{i,t}\)</span> represents the presence of a species at year <span class="math inline">\(t\)</span> and site <span class="math inline">\(i\)</span>.</p>
+<p><span class="math inline">\(z\)</span> depends on the probability of occupancy <span class="math inline">\(\psi_{i,t}\)</span> through a Bernouilli law: <span class="math inline">\(z_{i,t} = \mathcal{B}(\psi_{i,t})\)</span>. <span class="math inline">\(\psi\)</span> can depend on other variables through a logit link, Here we investigate several combinations of the following elements: a fixed intercept, a temporal trend = and a spatial autocorrelation:</p>
+<p><span class="math display">\[\text{logit}(\psi_{i,t}) = \alpha_{0} + \alpha_1 t +  \omega_i \]</span></p>
+<p>The second part of the model is the detection part. Our data are detection data, <span class="math inline">\(y_{i,t,k} = \mathcal{B}(p_{i,t,k} \times z_{i,t})\)</span></p>
+<p><span class="math inline">\(p_{i,t,k} = \beta_0\)</span></p>
+<p>Each year, a given proportion of sites are visited. Here we fix it to 50% to have a simple context for the model. Each site is visited every week, so 52 times per year.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define the parameters of the dataset</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>n_years <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>n_visit <span class="ot">&lt;-</span> <span class="dv">52</span></span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>prop_visit <span class="ot">&lt;-</span> <span class="fl">0.5</span></span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>n_dataset <span class="ot">&lt;-</span> <span class="dv">2</span></span>
+<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a><span class="co"># value of intercepts in the model</span></span>
+<span id="cb47-8"><a href="#cb47-8" aria-hidden="true" tabindex="-1"></a>prob_psi <span class="ot">&lt;-</span> <span class="fl">0.3</span></span>
+<span id="cb47-9"><a href="#cb47-9" aria-hidden="true" tabindex="-1"></a>prob_p <span class="ot">&lt;-</span> <span class="fl">0.2</span></span>
+<span id="cb47-10"><a href="#cb47-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-11"><a href="#cb47-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Parameters of spatial field and mesh</span></span>
+<span id="cb47-12"><a href="#cb47-12" aria-hidden="true" tabindex="-1"></a>range <span class="ot">&lt;-</span> <span class="dv">30</span></span>
+<span id="cb47-13"><a href="#cb47-13" aria-hidden="true" tabindex="-1"></a>sigma_m <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb47-14"><a href="#cb47-14" aria-hidden="true" tabindex="-1"></a>max_edge <span class="ot">&lt;-</span> <span class="dv">6</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We run our simulations on a simple spatial domain.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define the spatial domain</span></span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>nc <span class="ot">&lt;-</span> <span class="dv">100</span> <span class="co">#number of grid cells across latitude</span></span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>nr <span class="ot">&lt;-</span> <span class="dv">100</span> <span class="co">#number of grid cells across longitude</span></span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>n_sites <span class="ot">&lt;-</span> nc<span class="sc">*</span>nr</span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Define spatial domain</span></span>
+<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a>win <span class="ot">&lt;-</span> <span class="fu">owin</span>(<span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">100</span>), <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">100</span>))</span>
+<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a>Domain <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="at">nrows=</span>nr, <span class="at">ncols=</span>nc,</span>
+<span id="cb48-9"><a href="#cb48-9" aria-hidden="true" tabindex="-1"></a>               <span class="at">xmax=</span>win<span class="sc">$</span>xrange[<span class="dv">2</span>],<span class="at">xmin=</span>win<span class="sc">$</span>xrange[<span class="dv">1</span>],</span>
+<span id="cb48-10"><a href="#cb48-10" aria-hidden="true" tabindex="-1"></a>               <span class="at">ymax =</span> win<span class="sc">$</span>yrange[<span class="dv">2</span>],<span class="at">ymin=</span>win<span class="sc">$</span>yrange[<span class="dv">1</span>])</span>
+<span id="cb48-11"><a href="#cb48-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-12"><a href="#cb48-12" aria-hidden="true" tabindex="-1"></a><span class="fu">values</span>(Domain) <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">ncell</span>(Domain)</span>
+<span id="cb48-13"><a href="#cb48-13" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(Domain)<span class="ot">=</span><span class="st">"cell_id"</span></span>
+<span id="cb48-14"><a href="#cb48-14" aria-hidden="true" tabindex="-1"></a>locs <span class="ot">&lt;-</span> <span class="fu">crds</span>(Domain) </span>
+<span id="cb48-15"><a href="#cb48-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-16"><a href="#cb48-16" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(Domain)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="simu_spatial_test_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>We simulate datasets with the parameters fixed above. First, the occupancy is computed on natural scale, then it is tranformed to the probability scale, and binary outcomes are drawn from this probability. The detections are simulated in the same way.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulating datasets</span></span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>simulate_datasets <span class="ot">&lt;-</span> <span class="cf">function</span>(n_sites, n_years, n_visit, prop_visit, max_edge, locs, range, sigma_m, prob_psi, prob_p, model, n_dataset){</span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Empty list of dataset </span></span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>list_dataset <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (dt <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n_dataset){</span>
+<span id="cb49-7"><a href="#cb49-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="fu">paste0</span>(<span class="st">"Simulating dataset iteration "</span>,dt ))</span>
+<span id="cb49-8"><a href="#cb49-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-9"><a href="#cb49-9" aria-hidden="true" tabindex="-1"></a>sites_list <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span>n_sites <span class="co"># Spatial </span></span>
+<span id="cb49-10"><a href="#cb49-10" aria-hidden="true" tabindex="-1"></a>years_list <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span>n_years <span class="co"># Temporal primary </span></span>
+<span id="cb49-11"><a href="#cb49-11" aria-hidden="true" tabindex="-1"></a>visit_list <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span>n_visit <span class="co"># Temporal secondary </span></span>
+<span id="cb49-12"><a href="#cb49-12" aria-hidden="true" tabindex="-1"></a>n_visited <span class="ot">&lt;-</span> n_sites<span class="sc">*</span>prop_visit</span>
+<span id="cb49-13"><a href="#cb49-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-14"><a href="#cb49-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Create the visits and sampling effort</span></span>
+<span id="cb49-15"><a href="#cb49-15" aria-hidden="true" tabindex="-1"></a>total_sampling <span class="ot">&lt;-</span> <span class="fu">tibble</span>()</span>
+<span id="cb49-16"><a href="#cb49-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-17"><a href="#cb49-17" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n_years){</span>
+<span id="cb49-18"><a href="#cb49-18" aria-hidden="true" tabindex="-1"></a>  sampled_year <span class="ot">&lt;-</span> <span class="fu">sample</span>(sites_list, <span class="at">size=</span>n_visited, <span class="at">replace=</span><span class="cn">FALSE</span>)</span>
+<span id="cb49-19"><a href="#cb49-19" aria-hidden="true" tabindex="-1"></a>  effort <span class="ot">&lt;-</span> <span class="dv">1</span> </span>
+<span id="cb49-20"><a href="#cb49-20" aria-hidden="true" tabindex="-1"></a>  effort_formatted <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">site_id =</span> <span class="fu">rep</span>(sampled_year, <span class="at">each =</span> n_visit),</span>
+<span id="cb49-21"><a href="#cb49-21" aria-hidden="true" tabindex="-1"></a>                             <span class="at">year =</span> <span class="fu">rep</span>(years_list[i], n_visited<span class="sc">*</span>n_visit),</span>
+<span id="cb49-22"><a href="#cb49-22" aria-hidden="true" tabindex="-1"></a>                             <span class="at">visit =</span> <span class="fu">rep</span>(visit_list, n_visited),</span>
+<span id="cb49-23"><a href="#cb49-23" aria-hidden="true" tabindex="-1"></a>                             <span class="at">n_sp =</span> effort)</span>
+<span id="cb49-24"><a href="#cb49-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-25"><a href="#cb49-25" aria-hidden="true" tabindex="-1"></a>  total_sampling <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(total_sampling, effort_formatted)</span>
+<span id="cb49-26"><a href="#cb49-26" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb49-27"><a href="#cb49-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-28"><a href="#cb49-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-29"><a href="#cb49-29" aria-hidden="true" tabindex="-1"></a><span class="co"># Create the full combinations (empty frame)</span></span>
+<span id="cb49-30"><a href="#cb49-30" aria-hidden="true" tabindex="-1"></a>sampling_frame <span class="ot">&lt;-</span> <span class="fu">setDT</span>(<span class="fu">expand.grid</span>(</span>
+<span id="cb49-31"><a href="#cb49-31" aria-hidden="true" tabindex="-1"></a><span class="at">site_id =</span> sites_list,</span>
+<span id="cb49-32"><a href="#cb49-32" aria-hidden="true" tabindex="-1"></a><span class="at">year    =</span> years_list,</span>
+<span id="cb49-33"><a href="#cb49-33" aria-hidden="true" tabindex="-1"></a><span class="at">visit   =</span> visit_list))</span>
+<span id="cb49-34"><a href="#cb49-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-35"><a href="#cb49-35" aria-hidden="true" tabindex="-1"></a>sampling_f <span class="ot">&lt;-</span>  <span class="fu">merge</span>(sampling_frame,total_sampling, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"site_id"</span>, <span class="st">"year"</span>, <span class="st">"visit"</span>),<span class="at">all=</span><span class="cn">TRUE</span>) </span>
+<span id="cb49-36"><a href="#cb49-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-37"><a href="#cb49-37" aria-hidden="true" tabindex="-1"></a>sampling_f <span class="ot">&lt;-</span> sampling_f <span class="sc">%&gt;%</span></span>
+<span id="cb49-38"><a href="#cb49-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(visit, year, site_id)</span>
+<span id="cb49-39"><a href="#cb49-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-40"><a href="#cb49-40" aria-hidden="true" tabindex="-1"></a><span class="co"># Put in right format [sites, years, visits]</span></span>
+<span id="cb49-41"><a href="#cb49-41" aria-hidden="true" tabindex="-1"></a>effort_effect <span class="ot">&lt;-</span> <span class="fu">array</span>(</span>
+<span id="cb49-42"><a href="#cb49-42" aria-hidden="true" tabindex="-1"></a>  sampling_f<span class="sc">$</span>n_sp,</span>
+<span id="cb49-43"><a href="#cb49-43" aria-hidden="true" tabindex="-1"></a>  <span class="at">dim =</span> <span class="fu">c</span>(<span class="fu">length</span>(sites_list), <span class="fu">length</span>(years_list), <span class="fu">length</span>(visit_list)),</span>
+<span id="cb49-44"><a href="#cb49-44" aria-hidden="true" tabindex="-1"></a>  <span class="at">dimnames =</span> <span class="fu">list</span>(</span>
+<span id="cb49-45"><a href="#cb49-45" aria-hidden="true" tabindex="-1"></a>    <span class="at">site  =</span> sites_list,</span>
+<span id="cb49-46"><a href="#cb49-46" aria-hidden="true" tabindex="-1"></a>    <span class="at">year  =</span> years_list,</span>
+<span id="cb49-47"><a href="#cb49-47" aria-hidden="true" tabindex="-1"></a>    <span class="at">visit =</span> visit_list</span>
+<span id="cb49-48"><a href="#cb49-48" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb49-49"><a href="#cb49-49" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb49-50"><a href="#cb49-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-51"><a href="#cb49-51" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb49-52"><a href="#cb49-52" aria-hidden="true" tabindex="-1"></a><span class="co"># Create the mesh </span></span>
+<span id="cb49-53"><a href="#cb49-53" aria-hidden="true" tabindex="-1"></a>mesh <span class="ot">&lt;-</span> <span class="fu">fm_mesh_2d_inla</span>(<span class="at">loc.domain=</span>locs,</span>
+<span id="cb49-54"><a href="#cb49-54" aria-hidden="true" tabindex="-1"></a>                     <span class="at">max.edge =</span> <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">2</span>)<span class="sc">*</span>max_edge,</span>
+<span id="cb49-55"><a href="#cb49-55" aria-hidden="true" tabindex="-1"></a>                    <span class="at">offset=</span><span class="fu">c</span>(max_edge, max_edge<span class="sc">*</span><span class="dv">5</span>),</span>
+<span id="cb49-56"><a href="#cb49-56" aria-hidden="true" tabindex="-1"></a>                    <span class="at">cutoff =</span> max_edge<span class="sc">/</span><span class="dv">5</span>)</span>
+<span id="cb49-57"><a href="#cb49-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-58"><a href="#cb49-58" aria-hidden="true" tabindex="-1"></a>spde <span class="ot">&lt;-</span> <span class="fu">inla.spde2.pcmatern</span>(</span>
+<span id="cb49-59"><a href="#cb49-59" aria-hidden="true" tabindex="-1"></a>  <span class="at">mesh        =</span> mesh,</span>
+<span id="cb49-60"><a href="#cb49-60" aria-hidden="true" tabindex="-1"></a>  <span class="at">prior.range =</span> <span class="fu">c</span>(range, <span class="fl">0.5</span>),   <span class="co"># Put prior centred on real value</span></span>
+<span id="cb49-61"><a href="#cb49-61" aria-hidden="true" tabindex="-1"></a>  <span class="at">prior.sigma =</span> <span class="fu">c</span>(sigma_m, <span class="fl">0.5</span>)</span>
+<span id="cb49-62"><a href="#cb49-62" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb49-63"><a href="#cb49-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-64"><a href="#cb49-64" aria-hidden="true" tabindex="-1"></a>A_sp <span class="ot">&lt;-</span> <span class="fu">inla.spde.make.A</span>(<span class="at">mesh =</span> mesh, </span>
+<span id="cb49-65"><a href="#cb49-65" aria-hidden="true" tabindex="-1"></a>                         <span class="at">loc=</span>locs)</span>
+<span id="cb49-66"><a href="#cb49-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-67"><a href="#cb49-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-68"><a href="#cb49-68" aria-hidden="true" tabindex="-1"></a><span class="co"># Precision matrix</span></span>
+<span id="cb49-69"><a href="#cb49-69" aria-hidden="true" tabindex="-1"></a>Q <span class="ot">=</span> <span class="fu">inla.spde2.precision</span>(spde, <span class="at">theta =</span> <span class="fu">c</span>(<span class="fu">log</span>(range),</span>
+<span id="cb49-70"><a href="#cb49-70" aria-hidden="true" tabindex="-1"></a>                                              <span class="fu">log</span>(sigma_m)))</span>
+<span id="cb49-71"><a href="#cb49-71" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate the spatial field</span></span>
+<span id="cb49-72"><a href="#cb49-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-73"><a href="#cb49-73" aria-hidden="true" tabindex="-1"></a>sim_field <span class="ot">=</span> <span class="fu">inla.qsample</span>(<span class="at">n =</span> <span class="dv">1</span>, <span class="at">Q =</span> Q, <span class="at">seed =</span> seed)</span>
+<span id="cb49-74"><a href="#cb49-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-75"><a href="#cb49-75" aria-hidden="true" tabindex="-1"></a>omega <span class="ot">&lt;-</span> (A_sp <span class="sc">%*%</span> sim_field)[,<span class="dv">1</span>]</span>
+<span id="cb49-76"><a href="#cb49-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-77"><a href="#cb49-77" aria-hidden="true" tabindex="-1"></a>omega_yearly <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="fu">data.table</span>(omega), <span class="fu">replicate</span>(n_years <span class="sc">-</span><span class="dv">1</span>,omega))</span>
+<span id="cb49-78"><a href="#cb49-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-79"><a href="#cb49-79" aria-hidden="true" tabindex="-1"></a><span class="co"># EMmpty matrix for z</span></span>
+<span id="cb49-80"><a href="#cb49-80" aria-hidden="true" tabindex="-1"></a>z <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="at">nrow =</span> <span class="dv">10000</span>, <span class="at">ncol =</span> n_years)</span>
+<span id="cb49-81"><a href="#cb49-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-82"><a href="#cb49-82" aria-hidden="true" tabindex="-1"></a><span class="co"># Chose model </span></span>
+<span id="cb49-83"><a href="#cb49-83" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span>(model <span class="sc">==</span> <span class="st">"constant"</span>){</span>
+<span id="cb49-84"><a href="#cb49-84" aria-hidden="true" tabindex="-1"></a><span class="co"># Occupancy probabilities</span></span>
+<span id="cb49-85"><a href="#cb49-85" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-86"><a href="#cb49-86" aria-hidden="true" tabindex="-1"></a><span class="co"># True occupancy state</span></span>
+<span id="cb49-87"><a href="#cb49-87" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n_years){</span>
+<span id="cb49-88"><a href="#cb49-88" aria-hidden="true" tabindex="-1"></a>  z[,i] <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_sites, <span class="at">size =</span> <span class="dv">1</span>, <span class="at">prob =</span> <span class="fu">inla.link.logit</span>(prob_psi, <span class="at">inverse =</span> T))</span>
+<span id="cb49-89"><a href="#cb49-89" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb49-90"><a href="#cb49-90" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-91"><a href="#cb49-91" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-92"><a href="#cb49-92" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb49-93"><a href="#cb49-93" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span> <span class="cf">if</span> (model <span class="sc">==</span> <span class="st">"spatial"</span>){</span>
+<span id="cb49-94"><a href="#cb49-94" aria-hidden="true" tabindex="-1"></a><span class="co"># Occupancy probabilities</span></span>
+<span id="cb49-95"><a href="#cb49-95" aria-hidden="true" tabindex="-1"></a>psi <span class="ot">&lt;-</span> <span class="fu">inla.link.logit</span>(prob_psi</span>
+<span id="cb49-96"><a href="#cb49-96" aria-hidden="true" tabindex="-1"></a>  <span class="sc">+</span>  omega_yearly </span>
+<span id="cb49-97"><a href="#cb49-97" aria-hidden="true" tabindex="-1"></a>  , <span class="at">inverse =</span> T)</span>
+<span id="cb49-98"><a href="#cb49-98" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-99"><a href="#cb49-99" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-100"><a href="#cb49-100" aria-hidden="true" tabindex="-1"></a><span class="co"># True occupancy state</span></span>
+<span id="cb49-101"><a href="#cb49-101" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n_years){</span>
+<span id="cb49-102"><a href="#cb49-102" aria-hidden="true" tabindex="-1"></a>  z[,i] <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_sites, <span class="at">size =</span> <span class="dv">1</span>, <span class="at">prob =</span> psi[,i])</span>
+<span id="cb49-103"><a href="#cb49-103" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb49-104"><a href="#cb49-104" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-105"><a href="#cb49-105" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb49-106"><a href="#cb49-106" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-107"><a href="#cb49-107" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span> <span class="cf">if</span>(model <span class="sc">==</span> <span class="st">"trend"</span>){</span>
+<span id="cb49-108"><a href="#cb49-108" aria-hidden="true" tabindex="-1"></a><span class="co"># Occupancy probabilities</span></span>
+<span id="cb49-109"><a href="#cb49-109" aria-hidden="true" tabindex="-1"></a>psi <span class="ot">&lt;-</span> <span class="fu">inla.link.logit</span>(prob_psi</span>
+<span id="cb49-110"><a href="#cb49-110" aria-hidden="true" tabindex="-1"></a>  <span class="sc">+</span>  omega_yearly </span>
+<span id="cb49-111"><a href="#cb49-111" aria-hidden="true" tabindex="-1"></a>  , <span class="at">inverse =</span> T)</span>
+<span id="cb49-112"><a href="#cb49-112" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-113"><a href="#cb49-113" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-114"><a href="#cb49-114" aria-hidden="true" tabindex="-1"></a><span class="co"># True occupancy state</span></span>
+<span id="cb49-115"><a href="#cb49-115" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n_years){</span>
+<span id="cb49-116"><a href="#cb49-116" aria-hidden="true" tabindex="-1"></a>  z[,i] <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_sites, <span class="at">size =</span> <span class="dv">1</span>, <span class="at">prob =</span> psi[,i])</span>
+<span id="cb49-117"><a href="#cb49-117" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb49-118"><a href="#cb49-118" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-119"><a href="#cb49-119" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb49-120"><a href="#cb49-120" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-121"><a href="#cb49-121" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-122"><a href="#cb49-122" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-123"><a href="#cb49-123" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-124"><a href="#cb49-124" aria-hidden="true" tabindex="-1"></a><span class="co"># Detection probabilities and observed occurrences</span></span>
+<span id="cb49-125"><a href="#cb49-125" aria-hidden="true" tabindex="-1"></a><span class="co"># Create empty matrix to store the results</span></span>
+<span id="cb49-126"><a href="#cb49-126" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span> <span class="fu">array</span>(<span class="cn">NA</span>,<span class="at">dim =</span> <span class="fu">c</span>(n_sites, n_years, n_visit)) </span>
+<span id="cb49-127"><a href="#cb49-127" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb49-128"><a href="#cb49-128" aria-hidden="true" tabindex="-1"></a><span class="co"># loop over visits</span></span>
+<span id="cb49-129"><a href="#cb49-129" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n_years){</span>
+<span id="cb49-130"><a href="#cb49-130" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(j <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n_visit){</span>
+<span id="cb49-131"><a href="#cb49-131" aria-hidden="true" tabindex="-1"></a> sites_visited <span class="ot">&lt;-</span> <span class="fu">which</span>(<span class="sc">!</span><span class="fu">is.na</span>(effort_effect[,i,j]))</span>
+<span id="cb49-132"><a href="#cb49-132" aria-hidden="true" tabindex="-1"></a> prob <span class="ot">&lt;-</span> <span class="fu">plogis</span>(prob_p)<span class="sc">*</span>z[sites_visited, i]</span>
+<span id="cb49-133"><a href="#cb49-133" aria-hidden="true" tabindex="-1"></a> y[sites_visited,i,j] <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(<span class="at">n =</span> n_visited,<span class="at">size =</span> <span class="dv">1</span>,<span class="at">prob =</span> prob)</span>
+<span id="cb49-134"><a href="#cb49-134" aria-hidden="true" tabindex="-1"></a>} </span>
+<span id="cb49-135"><a href="#cb49-135" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb49-136"><a href="#cb49-136" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-137"><a href="#cb49-137" aria-hidden="true" tabindex="-1"></a><span class="do">##########################</span></span>
+<span id="cb49-138"><a href="#cb49-138" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-139"><a href="#cb49-139" aria-hidden="true" tabindex="-1"></a><span class="co"># Get into INLA format</span></span>
+<span id="cb49-140"><a href="#cb49-140" aria-hidden="true" tabindex="-1"></a><span class="co"># Need scale years </span></span>
+<span id="cb49-141"><a href="#cb49-141" aria-hidden="true" tabindex="-1"></a>years_effect <span class="ot">&lt;-</span>  <span class="fu">array</span>(<span class="fu">rep</span>(<span class="fu">scale</span>(<span class="fu">as.numeric</span>(years_list)), <span class="at">each =</span> <span class="fu">length</span>(sites_list)),</span>
+<span id="cb49-142"><a href="#cb49-142" aria-hidden="true" tabindex="-1"></a>                      <span class="at">dim =</span> <span class="fu">c</span>(<span class="fu">length</span>(sites_list), <span class="fu">length</span>(years_list)))</span>
+<span id="cb49-143"><a href="#cb49-143" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-144"><a href="#cb49-144" aria-hidden="true" tabindex="-1"></a>year <span class="ot">&lt;-</span> <span class="fu">as.vector</span>(years_effect)</span>
+<span id="cb49-145"><a href="#cb49-145" aria-hidden="true" tabindex="-1"></a><span class="co"># Prepar vector for INLA format </span></span>
+<span id="cb49-146"><a href="#cb49-146" aria-hidden="true" tabindex="-1"></a>INLA_y <span class="ot">&lt;-</span> <span class="fu">c</span>()</span>
+<span id="cb49-147"><a href="#cb49-147" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-148"><a href="#cb49-148" aria-hidden="true" tabindex="-1"></a><span class="co"># Visits table </span></span>
+<span id="cb49-149"><a href="#cb49-149" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n_years)</span>
+<span id="cb49-150"><a href="#cb49-150" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb49-151"><a href="#cb49-151" aria-hidden="true" tabindex="-1"></a>  INLA_y <span class="ot">=</span> <span class="fu">rbind</span>(INLA_y, y[,i,])</span>
+<span id="cb49-152"><a href="#cb49-152" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb49-153"><a href="#cb49-153" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-154"><a href="#cb49-154" aria-hidden="true" tabindex="-1"></a><span class="co"># Get which replicates are NA </span></span>
+<span id="cb49-155"><a href="#cb49-155" aria-hidden="true" tabindex="-1"></a>INLA_y_effort <span class="ot">&lt;-</span> INLA_y</span>
+<span id="cb49-156"><a href="#cb49-156" aria-hidden="true" tabindex="-1"></a>INLA_y_effort[<span class="sc">!</span><span class="fu">is.na</span>(INLA_y_effort)] <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb49-157"><a href="#cb49-157" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-158"><a href="#cb49-158" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-159"><a href="#cb49-159" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-160"><a href="#cb49-160" aria-hidden="true" tabindex="-1"></a><span class="co"># Occupancy covariates </span></span>
+<span id="cb49-161"><a href="#cb49-161" aria-hidden="true" tabindex="-1"></a>INLA_occ <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb49-162"><a href="#cb49-162" aria-hidden="true" tabindex="-1"></a>          <span class="at">year_id =</span> year<span class="sc">-</span><span class="fu">min</span>(year)<span class="sc">+</span><span class="dv">1</span>,</span>
+<span id="cb49-163"><a href="#cb49-163" aria-hidden="true" tabindex="-1"></a>          <span class="at">ID_grid =</span> <span class="fu">as.vector</span>(<span class="fu">rep</span>(sites_list, n_years)),</span>
+<span id="cb49-164"><a href="#cb49-164" aria-hidden="true" tabindex="-1"></a>          <span class="at">Int_z =</span> <span class="dv">1</span>,</span>
+<span id="cb49-165"><a href="#cb49-165" aria-hidden="true" tabindex="-1"></a>          <span class="at">year_scaled =</span> year,</span>
+<span id="cb49-166"><a href="#cb49-166" aria-hidden="true" tabindex="-1"></a>          <span class="at">x_grid =</span> <span class="fu">rep</span>(locs[,<span class="dv">1</span>], n_years),</span>
+<span id="cb49-167"><a href="#cb49-167" aria-hidden="true" tabindex="-1"></a>          <span class="at">y_grid =</span> <span class="fu">rep</span>(locs[,<span class="dv">2</span>], n_years),</span>
+<span id="cb49-168"><a href="#cb49-168" aria-hidden="true" tabindex="-1"></a>          <span class="at">spatialfield =</span> <span class="cn">NA</span>,</span>
+<span id="cb49-169"><a href="#cb49-169" aria-hidden="true" tabindex="-1"></a>          <span class="at">true_int =</span> <span class="fu">rep</span>(prob_psi, n_years<span class="sc">*</span>n_sites),</span>
+<span id="cb49-170"><a href="#cb49-170" aria-hidden="true" tabindex="-1"></a>          <span class="at">idTime =</span> <span class="cn">NA</span>)</span>
+<span id="cb49-171"><a href="#cb49-171" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb49-172"><a href="#cb49-172" aria-hidden="true" tabindex="-1"></a><span class="co"># Detection covariates </span></span>
+<span id="cb49-173"><a href="#cb49-173" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-174"><a href="#cb49-174" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-175"><a href="#cb49-175" aria-hidden="true" tabindex="-1"></a>INLA_det <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(INLA_y_effort[,<span class="dv">1</span>]</span>
+<span id="cb49-176"><a href="#cb49-176" aria-hidden="true" tabindex="-1"></a>                            )</span>
+<span id="cb49-177"><a href="#cb49-177" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb49-178"><a href="#cb49-178" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(INLA_det) <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="fu">c</span>(<span class="st">"DetInt"</span>),<span class="st">"_"</span>,<span class="dv">1</span>)</span>
+<span id="cb49-179"><a href="#cb49-179" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb49-180"><a href="#cb49-180" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(k <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span>n_visit){</span>
+<span id="cb49-181"><a href="#cb49-181" aria-hidden="true" tabindex="-1"></a>          tmp <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(INLA_y_effort[,k])</span>
+<span id="cb49-182"><a href="#cb49-182" aria-hidden="true" tabindex="-1"></a>          <span class="fu">names</span>(tmp) <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="fu">c</span>(<span class="st">"DetInt"</span>),<span class="st">"_"</span>,k)</span>
+<span id="cb49-183"><a href="#cb49-183" aria-hidden="true" tabindex="-1"></a>          </span>
+<span id="cb49-184"><a href="#cb49-184" aria-hidden="true" tabindex="-1"></a>          INLA_det <span class="ot">&lt;-</span> <span class="fu">cbind</span>(INLA_det, tmp)</span>
+<span id="cb49-185"><a href="#cb49-185" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb49-186"><a href="#cb49-186" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-187"><a href="#cb49-187" aria-hidden="true" tabindex="-1"></a><span class="co"># Check and remove NAs in observation across visits</span></span>
+<span id="cb49-188"><a href="#cb49-188" aria-hidden="true" tabindex="-1"></a>keep <span class="ot">=</span> <span class="sc">!</span><span class="fu">apply</span>(INLA_y,<span class="dv">1</span>,<span class="cf">function</span>(x)<span class="fu">all</span>(<span class="fu">is.na</span>(x)))</span>
+<span id="cb49-189"><a href="#cb49-189" aria-hidden="true" tabindex="-1"></a>INLA_y <span class="ot">=</span> INLA_y[keep,]</span>
+<span id="cb49-190"><a href="#cb49-190" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-191"><a href="#cb49-191" aria-hidden="true" tabindex="-1"></a><span class="co"># Keep full for predictions</span></span>
+<span id="cb49-192"><a href="#cb49-192" aria-hidden="true" tabindex="-1"></a>INLA_occ_pred <span class="ot">=</span> INLA_occ</span>
+<span id="cb49-193"><a href="#cb49-193" aria-hidden="true" tabindex="-1"></a>INLA_occ <span class="ot">=</span> INLA_occ[keep,]</span>
+<span id="cb49-194"><a href="#cb49-194" aria-hidden="true" tabindex="-1"></a>INLA_det <span class="ot">=</span> INLA_det[keep,]</span>
+<span id="cb49-195"><a href="#cb49-195" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-196"><a href="#cb49-196" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb49-197"><a href="#cb49-197" aria-hidden="true" tabindex="-1"></a><span class="co"># Assemble the data </span></span>
+<span id="cb49-198"><a href="#cb49-198" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb49-199"><a href="#cb49-199" aria-hidden="true" tabindex="-1"></a>INLA_data <span class="ot">=</span> <span class="fu">as.list</span>(INLA_occ)</span>
+<span id="cb49-200"><a href="#cb49-200" aria-hidden="true" tabindex="-1"></a>INLA_data<span class="sc">$</span>Y <span class="ot">=</span> INLA_y</span>
+<span id="cb49-201"><a href="#cb49-201" aria-hidden="true" tabindex="-1"></a>INLA_data<span class="sc">$</span>X <span class="ot">=</span> INLA_det</span>
+<span id="cb49-202"><a href="#cb49-202" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-203"><a href="#cb49-203" aria-hidden="true" tabindex="-1"></a>list_of_data <span class="ot">&lt;-</span> <span class="fu">list</span>(INLA_data, INLA_occ_pred)</span>
+<span id="cb49-204"><a href="#cb49-204" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-205"><a href="#cb49-205" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-206"><a href="#cb49-206" aria-hidden="true" tabindex="-1"></a>list_dataset[[dt]] <span class="ot">&lt;-</span> list_of_data  </span>
+<span id="cb49-207"><a href="#cb49-207" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb49-208"><a href="#cb49-208" aria-hidden="true" tabindex="-1"></a><span class="fu">return</span>(list_dataset)</span>
+<span id="cb49-209"><a href="#cb49-209" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We also have a function to analyse the datasets, in which we vary the model according to the type of data we simulated. Priors have been chosen according to recommendations by…</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Function to analyse the datasets</span></span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>analyse_dataset_simple <span class="ot">&lt;-</span> <span class="cf">function</span>(list_of_data, max_edge, range, sigma_m, prob_p, model){</span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>INLA_data <span class="ot">&lt;-</span> list_of_data[[<span class="dv">1</span>]]</span>
+<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>INLA_pred <span class="ot">&lt;-</span> list_of_data[[<span class="dv">2</span>]]</span>
+<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a>true_int <span class="ot">&lt;-</span> <span class="fu">unique</span>(INLA_data<span class="sc">$</span>true_int)</span>
+<span id="cb50-8"><a href="#cb50-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a mesh for the analysis and spde</span></span>
+<span id="cb50-9"><a href="#cb50-9" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb50-10"><a href="#cb50-10" aria-hidden="true" tabindex="-1"></a>mesh <span class="ot">&lt;-</span> <span class="fu">fm_mesh_2d_inla</span>(<span class="at">loc.domain=</span>locs,</span>
+<span id="cb50-11"><a href="#cb50-11" aria-hidden="true" tabindex="-1"></a>                     <span class="at">max.edge =</span> <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">2</span>)<span class="sc">*</span>max_edge,</span>
+<span id="cb50-12"><a href="#cb50-12" aria-hidden="true" tabindex="-1"></a>                    <span class="at">offset=</span><span class="fu">c</span>(max_edge, max_edge<span class="sc">*</span><span class="dv">5</span>),</span>
+<span id="cb50-13"><a href="#cb50-13" aria-hidden="true" tabindex="-1"></a>                    <span class="at">cutoff =</span> max_edge<span class="sc">/</span><span class="dv">5</span>)</span>
+<span id="cb50-14"><a href="#cb50-14" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb50-15"><a href="#cb50-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-16"><a href="#cb50-16" aria-hidden="true" tabindex="-1"></a>spde <span class="ot">&lt;-</span> <span class="fu">inla.spde2.pcmatern</span>(</span>
+<span id="cb50-17"><a href="#cb50-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">mesh        =</span> mesh,</span>
+<span id="cb50-18"><a href="#cb50-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">prior.range =</span> <span class="fu">c</span>(range, <span class="fl">0.5</span>), </span>
+<span id="cb50-19"><a href="#cb50-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">prior.sigma =</span> <span class="fu">c</span>(sigma_m, <span class="fl">0.5</span>)</span>
+<span id="cb50-20"><a href="#cb50-20" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb50-21"><a href="#cb50-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-22"><a href="#cb50-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-23"><a href="#cb50-23" aria-hidden="true" tabindex="-1"></a>A_sp_c <span class="ot">&lt;-</span> <span class="fu">inla.spde.make.A</span>(<span class="at">mesh =</span> mesh, </span>
+<span id="cb50-24"><a href="#cb50-24" aria-hidden="true" tabindex="-1"></a>                         <span class="at">loc=</span><span class="fu">cbind</span>(INLA_data<span class="sc">$</span>x_grid, INLA_data<span class="sc">$</span>y_grid))</span>
+<span id="cb50-25"><a href="#cb50-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-26"><a href="#cb50-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-27"><a href="#cb50-27" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb50-28"><a href="#cb50-28" aria-hidden="true" tabindex="-1"></a><span class="co"># Priors</span></span>
+<span id="cb50-29"><a href="#cb50-29" aria-hidden="true" tabindex="-1"></a>hyper.prior.list.det <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">beta1 =</span> <span class="fu">list</span>(<span class="at">param =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span><span class="sc">/</span><span class="fl">2.72</span>),</span>
+<span id="cb50-30"><a href="#cb50-30" aria-hidden="true" tabindex="-1"></a>                                          <span class="at">initial =</span> <span class="dv">0</span>))</span>
+<span id="cb50-31"><a href="#cb50-31" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb50-32"><a href="#cb50-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-33"><a href="#cb50-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-34"><a href="#cb50-34" aria-hidden="true" tabindex="-1"></a>hyper.pc.prec <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">prec =</span> <span class="fu">list</span>(<span class="at">prior =</span> <span class="st">"pc.prec"</span>,</span>
+<span id="cb50-35"><a href="#cb50-35" aria-hidden="true" tabindex="-1"></a>                                  <span class="at">param =</span> <span class="fu">c</span>(<span class="dv">1</span>,<span class="fl">0.5</span>)))</span>
+<span id="cb50-36"><a href="#cb50-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-37"><a href="#cb50-37" aria-hidden="true" tabindex="-1"></a><span class="co"># defining the model formula for each case</span></span>
+<span id="cb50-38"><a href="#cb50-38" aria-hidden="true" tabindex="-1"></a><span class="fu">message</span>(<span class="st">"Running INLA"</span>)</span>
+<span id="cb50-39"><a href="#cb50-39" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (model <span class="sc">==</span> <span class="st">"spatial"</span>){</span>
+<span id="cb50-40"><a href="#cb50-40" aria-hidden="true" tabindex="-1"></a>  formula <span class="ot">&lt;-</span> <span class="fu">inla.mdata</span>(Y,X) <span class="sc">~</span>  <span class="sc">-</span><span class="dv">1</span> <span class="sc">+</span> Int_z <span class="sc">+</span> <span class="fu">f</span>(spatialfield, <span class="at">model=</span>spde,<span class="at">A.local =</span> A_sp_c) </span>
+<span id="cb50-41"><a href="#cb50-41" aria-hidden="true" tabindex="-1"></a>  func <span class="ot">=</span> <span class="cf">function</span>(..., mesh_pred, data_pred){</span>
+<span id="cb50-42"><a href="#cb50-42" aria-hidden="true" tabindex="-1"></a>  res <span class="ot">=</span> (Int_z <span class="sc">+</span></span>
+<span id="cb50-43"><a href="#cb50-43" aria-hidden="true" tabindex="-1"></a>           (mesh_pred <span class="sc">%*%</span> spatialfield)[,<span class="dv">1</span>]</span>
+<span id="cb50-44"><a href="#cb50-44" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb50-45"><a href="#cb50-45" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(res)</span>
+<span id="cb50-46"><a href="#cb50-46" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb50-47"><a href="#cb50-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-48"><a href="#cb50-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-49"><a href="#cb50-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-50"><a href="#cb50-50" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb50-51"><a href="#cb50-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-52"><a href="#cb50-52" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span> <span class="cf">if</span>(model <span class="sc">==</span> <span class="st">"constant"</span>){</span>
+<span id="cb50-53"><a href="#cb50-53" aria-hidden="true" tabindex="-1"></a>  formula <span class="ot">&lt;-</span> <span class="fu">inla.mdata</span>(Y,X) <span class="sc">~</span>  <span class="sc">-</span><span class="dv">1</span> <span class="sc">+</span> Int_z </span>
+<span id="cb50-54"><a href="#cb50-54" aria-hidden="true" tabindex="-1"></a>  func <span class="ot">=</span> <span class="cf">function</span>(..., data_pred, mesh_pred){</span>
+<span id="cb50-55"><a href="#cb50-55" aria-hidden="true" tabindex="-1"></a>  res <span class="ot">=</span> (Int_z<span class="sc">*</span>data_pred<span class="sc">$</span>Int_z)</span>
+<span id="cb50-56"><a href="#cb50-56" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(res)</span>
+<span id="cb50-57"><a href="#cb50-57" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb50-58"><a href="#cb50-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-59"><a href="#cb50-59" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb50-60"><a href="#cb50-60" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span>{</span>
+<span id="cb50-61"><a href="#cb50-61" aria-hidden="true" tabindex="-1"></a>  formula <span class="ot">&lt;-</span> <span class="fu">inla.mdata</span>(Y,X) <span class="sc">~</span>  <span class="sc">-</span><span class="dv">1</span> <span class="sc">+</span> Int_z <span class="sc">+</span> year_scaled <span class="sc">+</span> <span class="fu">f</span>(spatialfield, <span class="at">model=</span>spde,<span class="at">A.local =</span> A_sp_c) </span>
+<span id="cb50-62"><a href="#cb50-62" aria-hidden="true" tabindex="-1"></a>   func <span class="ot">=</span> <span class="cf">function</span>(..., mesh_pred, data_pred){</span>
+<span id="cb50-63"><a href="#cb50-63" aria-hidden="true" tabindex="-1"></a>  res <span class="ot">=</span> (Int_z <span class="sc">+</span> year_scaled<span class="sc">*</span>data_pred<span class="sc">$</span>year_scaled <span class="sc">+</span></span>
+<span id="cb50-64"><a href="#cb50-64" aria-hidden="true" tabindex="-1"></a>           (mesh_pred <span class="sc">%*%</span> spatialfield)[,<span class="dv">1</span>]</span>
+<span id="cb50-65"><a href="#cb50-65" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb50-66"><a href="#cb50-66" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(res)</span>
+<span id="cb50-67"><a href="#cb50-67" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb50-68"><a href="#cb50-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-69"><a href="#cb50-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-70"><a href="#cb50-70" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-71"><a href="#cb50-71" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb50-72"><a href="#cb50-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-73"><a href="#cb50-73" aria-hidden="true" tabindex="-1"></a>model_spat <span class="ot">&lt;-</span> <span class="fu">inla</span>(formula, </span>
+<span id="cb50-74"><a href="#cb50-74" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">data=</span>INLA_data,  </span>
+<span id="cb50-75"><a href="#cb50-75" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">family=</span> <span class="st">'occupancy'</span>,  </span>
+<span id="cb50-76"><a href="#cb50-76" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">num.threads =</span> <span class="dv">4</span>,</span>
+<span id="cb50-77"><a href="#cb50-77" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">control.fixed =</span>  <span class="fu">list</span>(<span class="at">prec =</span> <span class="dv">1</span><span class="sc">/</span><span class="fl">2.72</span>, <span class="at">prec.intercept =</span> <span class="dv">1</span><span class="sc">/</span><span class="fl">2.72</span>),</span>
+<span id="cb50-78"><a href="#cb50-78" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">control.compute =</span> <span class="fu">list</span>(<span class="at">waic =</span> <span class="cn">TRUE</span>, <span class="at">config =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb50-79"><a href="#cb50-79" aria-hidden="true" tabindex="-1"></a>                                              <span class="at">residuals =</span> T,</span>
+<span id="cb50-80"><a href="#cb50-80" aria-hidden="true" tabindex="-1"></a>                                              <span class="at">return.marginals.predictor=</span><span class="cn">TRUE</span>), </span>
+<span id="cb50-81"><a href="#cb50-81" aria-hidden="true" tabindex="-1"></a>                       <span class="at">control.inla =</span> <span class="fu">list</span>(<span class="at">int.strategy =</span> <span class="st">"eb"</span>), </span>
+<span id="cb50-82"><a href="#cb50-82" aria-hidden="true" tabindex="-1"></a>                       <span class="at">control.family =</span> <span class="fu">list</span>(<span class="at">control.link =</span> <span class="fu">list</span>(<span class="at">model =</span> <span class="st">"logit"</span>), </span>
+<span id="cb50-83"><a href="#cb50-83" aria-hidden="true" tabindex="-1"></a>                                             <span class="at">link.simple =</span> <span class="st">"logit"</span>,</span>
+<span id="cb50-84"><a href="#cb50-84" aria-hidden="true" tabindex="-1"></a>                                             <span class="at">hyper =</span> hyper.prior.list.det))</span>
+<span id="cb50-85"><a href="#cb50-85" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-86"><a href="#cb50-86" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb50-87"><a href="#cb50-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-88"><a href="#cb50-88" aria-hidden="true" tabindex="-1"></a><span class="fu">message</span>(<span class="st">"Predicting"</span>)</span>
+<span id="cb50-89"><a href="#cb50-89" aria-hidden="true" tabindex="-1"></a>OccEff <span class="ot">&lt;-</span> model_spat<span class="sc">$</span>summary.fixed </span>
+<span id="cb50-90"><a href="#cb50-90" aria-hidden="true" tabindex="-1"></a>DetEff <span class="ot">&lt;-</span> model_spat<span class="sc">$</span>summary.hyperpar  </span>
+<span id="cb50-91"><a href="#cb50-91" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-92"><a href="#cb50-92" aria-hidden="true" tabindex="-1"></a>A_sp_c_pred <span class="ot">&lt;-</span> <span class="fu">inla.spde.make.A</span>(<span class="at">mesh =</span> mesh, </span>
+<span id="cb50-93"><a href="#cb50-93" aria-hidden="true" tabindex="-1"></a>                         <span class="at">loc=</span><span class="fu">cbind</span>(INLA_pred<span class="sc">$</span>x_grid, INLA_pred<span class="sc">$</span>y_grid))</span>
+<span id="cb50-94"><a href="#cb50-94" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-95"><a href="#cb50-95" aria-hidden="true" tabindex="-1"></a>PostDistSamples <span class="ot">&lt;-</span> <span class="fu">inla.posterior.sample</span>(<span class="dv">500</span>, model_spat) <span class="co"># get coef samples</span></span>
+<span id="cb50-96"><a href="#cb50-96" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-97"><a href="#cb50-97" aria-hidden="true" tabindex="-1"></a><span class="co"># Apply function (merge coeff samples w/ new covariates)</span></span>
+<span id="cb50-98"><a href="#cb50-98" aria-hidden="true" tabindex="-1"></a>PostDist_newCov <span class="ot">&lt;-</span> <span class="fu">inla.posterior.sample.eval</span>(func, PostDistSamples,</span>
+<span id="cb50-99"><a href="#cb50-99" aria-hidden="true" tabindex="-1"></a>                                                <span class="at">data_pred =</span> INLA_pred, <span class="at">mesh_pred =</span> A_sp_c_pred,</span>
+<span id="cb50-100"><a href="#cb50-100" aria-hidden="true" tabindex="-1"></a>                                                <span class="at">HyperParam.summary =</span> DetEff,</span>
+<span id="cb50-101"><a href="#cb50-101" aria-hidden="true" tabindex="-1"></a>                                                <span class="at">Bern.trial =</span> F, <span class="at">parallel.configs =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb50-102"><a href="#cb50-102" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-103"><a href="#cb50-103" aria-hidden="true" tabindex="-1"></a><span class="co"># Get back on probability scale</span></span>
+<span id="cb50-104"><a href="#cb50-104" aria-hidden="true" tabindex="-1"></a>PostDist_newCov_inv <span class="ot">&lt;-</span> <span class="fu">inla.link.logit</span>(PostDist_newCov, <span class="at">inverse =</span> T)</span>
+<span id="cb50-105"><a href="#cb50-105" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-106"><a href="#cb50-106" aria-hidden="true" tabindex="-1"></a><span class="co"># Processing posterior distribution samples w/ chunks of sites x years combinaisons</span></span>
+<span id="cb50-107"><a href="#cb50-107" aria-hidden="true" tabindex="-1"></a>  chunks <span class="ot">&lt;-</span> <span class="fu">split</span>(<span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(PostDist_newCov), <span class="fu">ceiling</span>(<span class="fu">seq_along</span>(<span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(PostDist_newCov))<span class="sc">/</span><span class="dv">5000</span>)) <span class="co"># split per Batch_size</span></span>
+<span id="cb50-108"><a href="#cb50-108" aria-hidden="true" tabindex="-1"></a>  chunk_list <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb50-109"><a href="#cb50-109" aria-hidden="true" tabindex="-1"></a>  <span class="co"># For each row, there are 500 columns that are the post dist </span></span>
+<span id="cb50-110"><a href="#cb50-110" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span>(c <span class="cf">in</span> <span class="fu">seq_along</span>(chunks)){</span>
+<span id="cb50-111"><a href="#cb50-111" aria-hidden="true" tabindex="-1"></a>    <span class="co"># subsets</span></span>
+<span id="cb50-112"><a href="#cb50-112" aria-hidden="true" tabindex="-1"></a>    subset <span class="ot">&lt;-</span> chunks[[c]]</span>
+<span id="cb50-113"><a href="#cb50-113" aria-hidden="true" tabindex="-1"></a>    tmp <span class="ot">&lt;-</span> PostDist_newCov[subset, , drop <span class="ot">=</span> <span class="cn">FALSE</span>]</span>
+<span id="cb50-114"><a href="#cb50-114" aria-hidden="true" tabindex="-1"></a>    tmp_inv<span class="ot">&lt;-</span> PostDist_newCov_inv[subset, , drop <span class="ot">=</span> <span class="cn">FALSE</span>]</span>
+<span id="cb50-115"><a href="#cb50-115" aria-hidden="true" tabindex="-1"></a>    <span class="co"># avg/sd/ci</span></span>
+<span id="cb50-116"><a href="#cb50-116" aria-hidden="true" tabindex="-1"></a>    mean_post <span class="ot">&lt;-</span> <span class="fu">rowMeans2</span>(tmp)</span>
+<span id="cb50-117"><a href="#cb50-117" aria-hidden="true" tabindex="-1"></a>    sd_post <span class="ot">&lt;-</span> <span class="fu">rowSds</span>(tmp)</span>
+<span id="cb50-118"><a href="#cb50-118" aria-hidden="true" tabindex="-1"></a>    mean_inv <span class="ot">&lt;-</span> <span class="fu">rowMeans2</span>(tmp_inv)</span>
+<span id="cb50-119"><a href="#cb50-119" aria-hidden="true" tabindex="-1"></a>    ci_inv <span class="ot">&lt;-</span> <span class="fu">rowQuantiles</span>(tmp_inv, <span class="at">probs =</span> <span class="fu">c</span>(<span class="fl">0.025</span>, <span class="fl">0.975</span>))</span>
+<span id="cb50-120"><a href="#cb50-120" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb50-121"><a href="#cb50-121" aria-hidden="true" tabindex="-1"></a>    <span class="co"># storing tmp results</span></span>
+<span id="cb50-122"><a href="#cb50-122" aria-hidden="true" tabindex="-1"></a>    chunk_tmp <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb50-123"><a href="#cb50-123" aria-hidden="true" tabindex="-1"></a>      <span class="at">mean =</span> mean_post,</span>
+<span id="cb50-124"><a href="#cb50-124" aria-hidden="true" tabindex="-1"></a>      <span class="at">sd =</span> sd_post,</span>
+<span id="cb50-125"><a href="#cb50-125" aria-hidden="true" tabindex="-1"></a>      <span class="at">mean_invLogit =</span> mean_inv,</span>
+<span id="cb50-126"><a href="#cb50-126" aria-hidden="true" tabindex="-1"></a>      <span class="at">lci_invLogit =</span> ci_inv[,<span class="dv">1</span>],</span>
+<span id="cb50-127"><a href="#cb50-127" aria-hidden="true" tabindex="-1"></a>      <span class="at">uci_invLogit =</span> ci_inv[,<span class="dv">2</span>])</span>
+<span id="cb50-128"><a href="#cb50-128" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb50-129"><a href="#cb50-129" aria-hidden="true" tabindex="-1"></a>    chunk_list[[c]] <span class="ot">&lt;-</span> chunk_tmp</span>
+<span id="cb50-130"><a href="#cb50-130" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-131"><a href="#cb50-131" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb50-132"><a href="#cb50-132" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-133"><a href="#cb50-133" aria-hidden="true" tabindex="-1"></a><span class="co"># Bind with the metadata, because it has stayed in the same order </span></span>
+<span id="cb50-134"><a href="#cb50-134" aria-hidden="true" tabindex="-1"></a>Pred_data_plot <span class="ot">&lt;-</span> <span class="fu">cbind</span>(INLA_pred[,<span class="fu">c</span>(<span class="st">"ID_grid"</span>,<span class="st">"year_scaled"</span>,<span class="st">"year_id"</span>,<span class="st">"x_grid"</span>,<span class="st">"y_grid"</span>)],</span>
+<span id="cb50-135"><a href="#cb50-135" aria-hidden="true" tabindex="-1"></a>                            <span class="fu">rbindlist</span>(chunk_list))</span>
+<span id="cb50-136"><a href="#cb50-136" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-137"><a href="#cb50-137" aria-hidden="true" tabindex="-1"></a><span class="co"># we just want the overall occupancy so we can directly do </span></span>
+<span id="cb50-138"><a href="#cb50-138" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-139"><a href="#cb50-139" aria-hidden="true" tabindex="-1"></a>occ_mean <span class="ot">&lt;-</span> <span class="fu">mean</span>(Pred_data_plot<span class="sc">$</span>mean) <span class="co"># Occupancy on natural scale</span></span>
+<span id="cb50-140"><a href="#cb50-140" aria-hidden="true" tabindex="-1"></a>occ_sd <span class="ot">&lt;-</span> <span class="fu">sd</span>(Pred_data_plot<span class="sc">$</span>mean)</span>
+<span id="cb50-141"><a href="#cb50-141" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-142"><a href="#cb50-142" aria-hidden="true" tabindex="-1"></a>results_inter <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb50-143"><a href="#cb50-143" aria-hidden="true" tabindex="-1"></a><span class="at">pred_mean =</span> occ_mean,</span>
+<span id="cb50-144"><a href="#cb50-144" aria-hidden="true" tabindex="-1"></a><span class="at">pred_sd =</span>occ_sd,</span>
+<span id="cb50-145"><a href="#cb50-145" aria-hidden="true" tabindex="-1"></a><span class="at">coeff_mean =</span> model_spat<span class="sc">$</span>summary.fixed<span class="sc">$</span>mean[[<span class="dv">1</span>]],</span>
+<span id="cb50-146"><a href="#cb50-146" aria-hidden="true" tabindex="-1"></a><span class="at">coeff_sd =</span> model_spat<span class="sc">$</span>summary.fixed<span class="sc">$</span>sd[[<span class="dv">1</span>]],</span>
+<span id="cb50-147"><a href="#cb50-147" aria-hidden="true" tabindex="-1"></a><span class="at">coeff_lwr =</span> model_spat<span class="sc">$</span>summary.fixed<span class="sc">$</span><span class="st">`</span><span class="at">0.025quant</span><span class="st">`</span>[[<span class="dv">1</span>]],</span>
+<span id="cb50-148"><a href="#cb50-148" aria-hidden="true" tabindex="-1"></a><span class="at">coeff_upr =</span> model_spat<span class="sc">$</span>summary.fixed<span class="sc">$</span><span class="st">`</span><span class="at">0.975quant</span><span class="st">`</span>[[<span class="dv">1</span>]],</span>
+<span id="cb50-149"><a href="#cb50-149" aria-hidden="true" tabindex="-1"></a><span class="at">true =</span> true_int,</span>
+<span id="cb50-150"><a href="#cb50-150" aria-hidden="true" tabindex="-1"></a><span class="at">value =</span> <span class="st">"occ_int"</span>)</span>
+<span id="cb50-151"><a href="#cb50-151" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-152"><a href="#cb50-152" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span>(model <span class="sc">==</span> <span class="st">"spatial"</span>){</span>
+<span id="cb50-153"><a href="#cb50-153" aria-hidden="true" tabindex="-1"></a>results_range <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb50-154"><a href="#cb50-154" aria-hidden="true" tabindex="-1"></a>  <span class="at">coeff_mean =</span> model_spat<span class="sc">$</span>summary.hyperpar<span class="sc">$</span>mean[[<span class="dv">2</span>]],</span>
+<span id="cb50-155"><a href="#cb50-155" aria-hidden="true" tabindex="-1"></a>  <span class="at">coeff_sd =</span> model_spat<span class="sc">$</span>summary.hyperpar<span class="sc">$</span>sd[[<span class="dv">2</span>]],</span>
+<span id="cb50-156"><a href="#cb50-156" aria-hidden="true" tabindex="-1"></a>  <span class="at">coeff_lwr =</span> model_spat<span class="sc">$</span>summary.hyperpar<span class="sc">$</span><span class="st">`</span><span class="at">0.025quant</span><span class="st">`</span>[[<span class="dv">2</span>]],</span>
+<span id="cb50-157"><a href="#cb50-157" aria-hidden="true" tabindex="-1"></a>  <span class="at">coeff_upr =</span> model_spat<span class="sc">$</span>summary.hyperpar<span class="sc">$</span><span class="st">`</span><span class="at">0.975quant</span><span class="st">`</span>[[<span class="dv">2</span>]],</span>
+<span id="cb50-158"><a href="#cb50-158" aria-hidden="true" tabindex="-1"></a>  <span class="at">true =</span> range,</span>
+<span id="cb50-159"><a href="#cb50-159" aria-hidden="true" tabindex="-1"></a>  <span class="at">value =</span> <span class="st">"range"</span></span>
+<span id="cb50-160"><a href="#cb50-160" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb50-161"><a href="#cb50-161" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-162"><a href="#cb50-162" aria-hidden="true" tabindex="-1"></a>results_sigma <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb50-163"><a href="#cb50-163" aria-hidden="true" tabindex="-1"></a>  <span class="at">coeff_mean =</span> model_spat<span class="sc">$</span>summary.hyperpar<span class="sc">$</span>mean[[<span class="dv">3</span>]],</span>
+<span id="cb50-164"><a href="#cb50-164" aria-hidden="true" tabindex="-1"></a>  <span class="at">coeff_sd =</span> model_spat<span class="sc">$</span>summary.hyperpar<span class="sc">$</span>sd[[<span class="dv">3</span>]],</span>
+<span id="cb50-165"><a href="#cb50-165" aria-hidden="true" tabindex="-1"></a>    <span class="at">coeff_lwr =</span> model_spat<span class="sc">$</span>summary.hyperpar<span class="sc">$</span><span class="st">`</span><span class="at">0.025quant</span><span class="st">`</span>[[<span class="dv">3</span>]],</span>
+<span id="cb50-166"><a href="#cb50-166" aria-hidden="true" tabindex="-1"></a>  <span class="at">coeff_upr =</span> model_spat<span class="sc">$</span>summary.hyperpar<span class="sc">$</span><span class="st">`</span><span class="at">0.975quant</span><span class="st">`</span>[[<span class="dv">3</span>]],</span>
+<span id="cb50-167"><a href="#cb50-167" aria-hidden="true" tabindex="-1"></a>  <span class="at">true =</span> sigma_m,</span>
+<span id="cb50-168"><a href="#cb50-168" aria-hidden="true" tabindex="-1"></a>  <span class="at">value =</span> <span class="st">"sigma"</span></span>
+<span id="cb50-169"><a href="#cb50-169" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb50-170"><a href="#cb50-170" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb50-171"><a href="#cb50-171" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span>{</span>
+<span id="cb50-172"><a href="#cb50-172" aria-hidden="true" tabindex="-1"></a>  results_range <span class="ot">&lt;-</span> <span class="cn">NULL</span></span>
+<span id="cb50-173"><a href="#cb50-173" aria-hidden="true" tabindex="-1"></a>  results_sigma <span class="ot">&lt;-</span> <span class="cn">NULL</span></span>
+<span id="cb50-174"><a href="#cb50-174" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb50-175"><a href="#cb50-175" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-176"><a href="#cb50-176" aria-hidden="true" tabindex="-1"></a>results_det <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb50-177"><a href="#cb50-177" aria-hidden="true" tabindex="-1"></a>  <span class="at">coeff_mean =</span> model_spat<span class="sc">$</span>summary.hyperpar<span class="sc">$</span>mean[[<span class="dv">1</span>]],</span>
+<span id="cb50-178"><a href="#cb50-178" aria-hidden="true" tabindex="-1"></a>  <span class="at">coeff_sd =</span> model_spat<span class="sc">$</span>summary.hyperpar<span class="sc">$</span>sd[[<span class="dv">1</span>]],</span>
+<span id="cb50-179"><a href="#cb50-179" aria-hidden="true" tabindex="-1"></a>    <span class="at">coeff_lwr =</span> model_spat<span class="sc">$</span>summary.hyperpar<span class="sc">$</span><span class="st">`</span><span class="at">0.025quant</span><span class="st">`</span>[[<span class="dv">1</span>]],</span>
+<span id="cb50-180"><a href="#cb50-180" aria-hidden="true" tabindex="-1"></a>  <span class="at">coeff_upr =</span> model_spat<span class="sc">$</span>summary.hyperpar<span class="sc">$</span><span class="st">`</span><span class="at">0.975quant</span><span class="st">`</span>[[<span class="dv">1</span>]],</span>
+<span id="cb50-181"><a href="#cb50-181" aria-hidden="true" tabindex="-1"></a>  <span class="at">true =</span> prob_p,</span>
+<span id="cb50-182"><a href="#cb50-182" aria-hidden="true" tabindex="-1"></a>  <span class="at">value =</span> <span class="st">"det_int"</span></span>
+<span id="cb50-183"><a href="#cb50-183" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb50-184"><a href="#cb50-184" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-185"><a href="#cb50-185" aria-hidden="true" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(results_inter, results_range, results_sigma, results_det)</span>
+<span id="cb50-186"><a href="#cb50-186" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-187"><a href="#cb50-187" aria-hidden="true" tabindex="-1"></a><span class="fu">return</span>(results)</span>
+<span id="cb50-188"><a href="#cb50-188" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-189"><a href="#cb50-189" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>First, we run the model without any spatial field. We start by varying the occupancy intercept.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Different values for occupancy intercept </span></span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>psi_vector <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">5</span>, <span class="dv">5</span>, <span class="fl">0.5</span>)</span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate three datasets per value </span></span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a>list_dataset <span class="ot">&lt;-</span> <span class="fu">sapply</span>(psi_vector,</span>
+<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a>                        simulate_datasets,</span>
+<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a>                        <span class="at">n_sites =</span> n_sites,</span>
+<span id="cb51-8"><a href="#cb51-8" aria-hidden="true" tabindex="-1"></a>                          <span class="at">n_years =</span> n_years,</span>
+<span id="cb51-9"><a href="#cb51-9" aria-hidden="true" tabindex="-1"></a>                          <span class="at">n_visit =</span> n_visit,</span>
+<span id="cb51-10"><a href="#cb51-10" aria-hidden="true" tabindex="-1"></a>                          <span class="at">prop_visit =</span> prop_visit,</span>
+<span id="cb51-11"><a href="#cb51-11" aria-hidden="true" tabindex="-1"></a>                          <span class="at">range =</span> range,</span>
+<span id="cb51-12"><a href="#cb51-12" aria-hidden="true" tabindex="-1"></a>                          <span class="at">sigma_m =</span> sigma_m,</span>
+<span id="cb51-13"><a href="#cb51-13" aria-hidden="true" tabindex="-1"></a>                          <span class="at">model =</span> <span class="st">"constant"</span>,</span>
+<span id="cb51-14"><a href="#cb51-14" aria-hidden="true" tabindex="-1"></a>                          <span class="at">max_edge =</span> max_edge,</span>
+<span id="cb51-15"><a href="#cb51-15" aria-hidden="true" tabindex="-1"></a>                          <span class="at">locs =</span> locs, </span>
+<span id="cb51-16"><a href="#cb51-16" aria-hidden="true" tabindex="-1"></a>                          <span class="at">prob_p =</span> prob_p,</span>
+<span id="cb51-17"><a href="#cb51-17" aria-hidden="true" tabindex="-1"></a>                          <span class="at">n_dataset =</span> n_dataset)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb136"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb136-1"><a href="#cb136-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Formula to analyse the dataset </span></span>
+<span id="cb136-2"><a href="#cb136-2" aria-hidden="true" tabindex="-1"></a>formula_constant <span class="ot">&lt;-</span> <span class="fu">inla.mdata</span>(Y,X) <span class="sc">~</span>  <span class="sc">-</span><span class="dv">1</span> <span class="sc">+</span> Int_z </span>
+<span id="cb136-3"><a href="#cb136-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb136-4"><a href="#cb136-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Function for prediction</span></span>
+<span id="cb136-5"><a href="#cb136-5" aria-hidden="true" tabindex="-1"></a>func_constant <span class="ot">=</span> <span class="cf">function</span>(..., data_pred, mesh_pred){</span>
+<span id="cb136-6"><a href="#cb136-6" aria-hidden="true" tabindex="-1"></a>  res <span class="ot">=</span> (Int_z<span class="sc">*</span>data_pred<span class="sc">$</span>Int_z)</span>
+<span id="cb136-7"><a href="#cb136-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(res)</span>
+<span id="cb136-8"><a href="#cb136-8" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb136-9"><a href="#cb136-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb136-10"><a href="#cb136-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Get the results </span></span>
+<span id="cb136-11"><a href="#cb136-11" aria-hidden="true" tabindex="-1"></a>all_results <span class="ot">&lt;-</span> <span class="fu">lapply</span>(list_dataset, analyse_dataset_simple, <span class="at">max_edge =</span> max_edge, <span class="at">range =</span> range, <span class="at">sigma_m =</span> sigma_m, <span class="at">prob_p =</span> prob_p, <span class="at">model =</span> <span class="st">"constant"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb221"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb221-1"><a href="#cb221-1" aria-hidden="true" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(all_results)</span>
+<span id="cb221-2"><a href="#cb221-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb221-3"><a href="#cb221-3" aria-hidden="true" tabindex="-1"></a>parameters <span class="ot">&lt;-</span> results <span class="sc">%&gt;%</span></span>
+<span id="cb221-4"><a href="#cb221-4" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(coeff_mean, coeff_sd, true, value, coeff_lwr, coeff_upr)</span>
+<span id="cb221-5"><a href="#cb221-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb221-6"><a href="#cb221-6" aria-hidden="true" tabindex="-1"></a>occupancy <span class="ot">&lt;-</span> results <span class="sc">%&gt;%</span></span>
+<span id="cb221-7"><a href="#cb221-7" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(value <span class="sc">==</span> <span class="st">"occ_int"</span>)</span>
+<span id="cb221-8"><a href="#cb221-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb221-9"><a href="#cb221-9" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb221-10"><a href="#cb221-10" aria-hidden="true" tabindex="-1"></a>p1<span class="ot">=</span><span class="fu">ggplot</span>(<span class="at">data=</span>parameters,<span class="fu">aes</span>(<span class="at">x=</span>true,<span class="at">y=</span>coeff_mean))<span class="sc">+</span></span>
+<span id="cb221-11"><a href="#cb221-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_pointrange</span>(<span class="fu">aes</span>(<span class="at">ymin=</span>coeff_upr,<span class="at">ymax=</span>coeff_lwr),<span class="at">alpha=</span><span class="fl">0.7</span>)<span class="sc">+</span></span>
+<span id="cb221-12"><a href="#cb221-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">y=</span>true),<span class="at">color=</span><span class="st">"red"</span>)<span class="sc">+</span></span>
+<span id="cb221-13"><a href="#cb221-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Parameter value/estimation"</span>)<span class="sc">+</span></span>
+<span id="cb221-14"><a href="#cb221-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Simulated intercept"</span>)<span class="sc">+</span></span>
+<span id="cb221-15"><a href="#cb221-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"a"</span>,<span class="at">subtitle=</span><span class="st">"Parameter estimation"</span>)<span class="sc">+</span></span>
+<span id="cb221-16"><a href="#cb221-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>value,<span class="at">scales=</span><span class="st">"free_y"</span>,<span class="at">labeller=</span><span class="fu">labeller</span>(<span class="at">variable =</span> <span class="fu">c</span>(<span class="at">occ_int=</span><span class="st">"Intercept Occupancy"</span>,</span>
+<span id="cb221-17"><a href="#cb221-17" aria-hidden="true" tabindex="-1"></a>                  <span class="at">det_int=</span><span class="st">"Intercept Detection"</span>)))<span class="sc">+</span></span>
+<span id="cb221-18"><a href="#cb221-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
+<span id="cb221-19"><a href="#cb221-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb221-20"><a href="#cb221-20" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb221-21"><a href="#cb221-21" aria-hidden="true" tabindex="-1"></a>p3<span class="ot">=</span><span class="fu">ggplot</span>(<span class="at">data=</span>occupancy,<span class="fu">aes</span>(<span class="at">x=</span>true,<span class="at">group=</span>true))<span class="sc">+</span></span>
+<span id="cb221-22"><a href="#cb221-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stat_summary</span>(<span class="fu">aes</span>(<span class="at">y=</span>pred_mean),<span class="at">color=</span><span class="st">"black"</span>,<span class="at">alpha=</span><span class="fl">0.7</span>)<span class="sc">+</span></span>
+<span id="cb221-23"><a href="#cb221-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_summary</span>(<span class="fu">aes</span>(<span class="at">y=</span>true),<span class="at">color=</span><span class="st">"red"</span>,<span class="at">geom=</span><span class="st">"point"</span>)<span class="sc">+</span></span>
+<span id="cb221-24"><a href="#cb221-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Average occupancy probability"</span>)<span class="sc">+</span></span>
+<span id="cb221-25"><a href="#cb221-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"b"</span>,<span class="at">subtitle=</span><span class="st">"Overall occupancy estimation"</span>)<span class="sc">+</span></span>
+<span id="cb221-26"><a href="#cb221-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
+<span id="cb221-27"><a href="#cb221-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb221-28"><a href="#cb221-28" aria-hidden="true" tabindex="-1"></a>p1</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="simu_spatial_test_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb222"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb222-1"><a href="#cb222-1" aria-hidden="true" tabindex="-1"></a>p3</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>No summary function supplied, defaulting to `mean_se()`</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>No summary function supplied, defaulting to `mean_se()`</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="simu_spatial_test_files/figure-html/unnamed-chunk-6-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Now we add the spatial autocorrelation</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb225"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb225-1"><a href="#cb225-1" aria-hidden="true" tabindex="-1"></a>formula_spatial <span class="ot">&lt;-</span> <span class="fu">inla.mdata</span>(Y,X) <span class="sc">~</span>  <span class="sc">-</span><span class="dv">1</span> <span class="sc">+</span> Int_z <span class="sc">+</span> <span class="fu">f</span>(spatialfield, <span class="at">model=</span>spde,<span class="at">A.local =</span> A_sp_c) </span>
+<span id="cb225-2"><a href="#cb225-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb225-3"><a href="#cb225-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Function for prediction</span></span>
+<span id="cb225-4"><a href="#cb225-4" aria-hidden="true" tabindex="-1"></a>func_spatial <span class="ot">=</span> <span class="cf">function</span>(..., mesh_pred, data_pred){</span>
+<span id="cb225-5"><a href="#cb225-5" aria-hidden="true" tabindex="-1"></a>  res <span class="ot">=</span> (Int_z <span class="sc">+</span></span>
+<span id="cb225-6"><a href="#cb225-6" aria-hidden="true" tabindex="-1"></a>           (mesh_pred <span class="sc">%*%</span> spatialfield)[,<span class="dv">1</span>]</span>
+<span id="cb225-7"><a href="#cb225-7" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb225-8"><a href="#cb225-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(res)</span>
+<span id="cb225-9"><a href="#cb225-9" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb225-10"><a href="#cb225-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb225-11"><a href="#cb225-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb225-12"><a href="#cb225-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb225-13"><a href="#cb225-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Different values for occupancy intercept </span></span>
+<span id="cb225-14"><a href="#cb225-14" aria-hidden="true" tabindex="-1"></a>psi_vector <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">4</span>, <span class="dv">4</span>, <span class="dv">1</span>)</span>
+<span id="cb225-15"><a href="#cb225-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb225-16"><a href="#cb225-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate three datasets per value </span></span>
+<span id="cb225-17"><a href="#cb225-17" aria-hidden="true" tabindex="-1"></a>list_dataset <span class="ot">&lt;-</span> <span class="fu">sapply</span>(psi_vector,</span>
+<span id="cb225-18"><a href="#cb225-18" aria-hidden="true" tabindex="-1"></a>                        simulate_datasets,</span>
+<span id="cb225-19"><a href="#cb225-19" aria-hidden="true" tabindex="-1"></a>                        <span class="at">n_sites =</span> n_sites,</span>
+<span id="cb225-20"><a href="#cb225-20" aria-hidden="true" tabindex="-1"></a>                          <span class="at">n_years =</span> n_years,</span>
+<span id="cb225-21"><a href="#cb225-21" aria-hidden="true" tabindex="-1"></a>                          <span class="at">n_visit =</span> n_visit,</span>
+<span id="cb225-22"><a href="#cb225-22" aria-hidden="true" tabindex="-1"></a>                          <span class="at">prop_visit =</span> prop_visit,</span>
+<span id="cb225-23"><a href="#cb225-23" aria-hidden="true" tabindex="-1"></a>                          <span class="at">range =</span> range,</span>
+<span id="cb225-24"><a href="#cb225-24" aria-hidden="true" tabindex="-1"></a>                          <span class="at">sigma_m =</span> sigma_m,</span>
+<span id="cb225-25"><a href="#cb225-25" aria-hidden="true" tabindex="-1"></a>                          <span class="at">model =</span> <span class="st">"spatial"</span>,</span>
+<span id="cb225-26"><a href="#cb225-26" aria-hidden="true" tabindex="-1"></a>                          <span class="at">max_edge =</span> max_edge,</span>
+<span id="cb225-27"><a href="#cb225-27" aria-hidden="true" tabindex="-1"></a>                          <span class="at">locs =</span> locs, </span>
+<span id="cb225-28"><a href="#cb225-28" aria-hidden="true" tabindex="-1"></a>                          <span class="at">prob_p =</span> prob_p,</span>
+<span id="cb225-29"><a href="#cb225-29" aria-hidden="true" tabindex="-1"></a>                          <span class="at">n_dataset =</span> n_dataset)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Simulating dataset iteration 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in inla.qsample(n = 1, Q = Q, seed = seed): Since 'seed!=0', parallel
+model is disabled and serial model is selected</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb262"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb262-1"><a href="#cb262-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Get the results </span></span>
+<span id="cb262-2"><a href="#cb262-2" aria-hidden="true" tabindex="-1"></a>all_results <span class="ot">&lt;-</span> <span class="fu">lapply</span>(list_dataset, analyse_dataset_simple, <span class="at">max_edge =</span> max_edge, <span class="at">range =</span> range, <span class="at">sigma_m =</span> sigma_m, <span class="at">prob_p =</span> prob_p, <span class="at">model =</span> <span class="st">"spatial"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Running INLA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Predicting</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb299"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb299-1"><a href="#cb299-1" aria-hidden="true" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(all_results)</span>
+<span id="cb299-2"><a href="#cb299-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb299-3"><a href="#cb299-3" aria-hidden="true" tabindex="-1"></a>parameters <span class="ot">&lt;-</span> results <span class="sc">%&gt;%</span></span>
+<span id="cb299-4"><a href="#cb299-4" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(coeff_mean, coeff_sd, true, value, coeff_lwr, coeff_upr)</span>
+<span id="cb299-5"><a href="#cb299-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb299-6"><a href="#cb299-6" aria-hidden="true" tabindex="-1"></a>occupancy <span class="ot">&lt;-</span> results <span class="sc">%&gt;%</span></span>
+<span id="cb299-7"><a href="#cb299-7" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(value <span class="sc">==</span> <span class="st">"occ_int"</span>)</span>
+<span id="cb299-8"><a href="#cb299-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb299-9"><a href="#cb299-9" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb299-10"><a href="#cb299-10" aria-hidden="true" tabindex="-1"></a>p1<span class="ot">=</span><span class="fu">ggplot</span>(<span class="at">data=</span>parameters,<span class="fu">aes</span>(<span class="at">x=</span>true,<span class="at">y=</span>coeff_mean))<span class="sc">+</span></span>
+<span id="cb299-11"><a href="#cb299-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_pointrange</span>(<span class="fu">aes</span>(<span class="at">ymin=</span>coeff_upr,<span class="at">ymax=</span>coeff_lwr),<span class="at">alpha=</span><span class="fl">0.7</span>)<span class="sc">+</span></span>
+<span id="cb299-12"><a href="#cb299-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">y=</span>true),<span class="at">color=</span><span class="st">"red"</span>)<span class="sc">+</span></span>
+<span id="cb299-13"><a href="#cb299-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Parameter value/estimation"</span>)<span class="sc">+</span></span>
+<span id="cb299-14"><a href="#cb299-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Simulated intercept"</span>)<span class="sc">+</span></span>
+<span id="cb299-15"><a href="#cb299-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"a"</span>,<span class="at">subtitle=</span><span class="st">"Parameter estimation"</span>)<span class="sc">+</span></span>
+<span id="cb299-16"><a href="#cb299-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>value,<span class="at">scales=</span><span class="st">"free_y"</span>,<span class="at">labeller=</span><span class="fu">labeller</span>(<span class="at">variable =</span> <span class="fu">c</span>(<span class="at">occ_int=</span><span class="st">"Intercept Occupancy"</span>,</span>
+<span id="cb299-17"><a href="#cb299-17" aria-hidden="true" tabindex="-1"></a>                  <span class="at">det_int=</span><span class="st">"Intercept Detection"</span>)))<span class="sc">+</span></span>
+<span id="cb299-18"><a href="#cb299-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
+<span id="cb299-19"><a href="#cb299-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb299-20"><a href="#cb299-20" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb299-21"><a href="#cb299-21" aria-hidden="true" tabindex="-1"></a>p3<span class="ot">=</span><span class="fu">ggplot</span>(<span class="at">data=</span>occupancy,<span class="fu">aes</span>(<span class="at">x=</span>true,<span class="at">group=</span>true))<span class="sc">+</span></span>
+<span id="cb299-22"><a href="#cb299-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stat_summary</span>(<span class="fu">aes</span>(<span class="at">y=</span>pred_mean),<span class="at">color=</span><span class="st">"black"</span>,<span class="at">alpha=</span><span class="fl">0.7</span>)<span class="sc">+</span></span>
+<span id="cb299-23"><a href="#cb299-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_summary</span>(<span class="fu">aes</span>(<span class="at">y=</span>true),<span class="at">color=</span><span class="st">"red"</span>,<span class="at">geom=</span><span class="st">"point"</span>)<span class="sc">+</span></span>
+<span id="cb299-24"><a href="#cb299-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Average occupancy probability"</span>)<span class="sc">+</span></span>
+<span id="cb299-25"><a href="#cb299-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"b"</span>,<span class="at">subtitle=</span><span class="st">"Overall occupancy estimation"</span>)<span class="sc">+</span></span>
+<span id="cb299-26"><a href="#cb299-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
+<span id="cb299-27"><a href="#cb299-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb299-28"><a href="#cb299-28" aria-hidden="true" tabindex="-1"></a>p1</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="simu_spatial_test_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb300"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb300-1"><a href="#cb300-1" aria-hidden="true" tabindex="-1"></a>p3</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>No summary function supplied, defaulting to `mean_se()`</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>No summary function supplied, defaulting to `mean_se()`</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="simu_spatial_test_files/figure-html/unnamed-chunk-7-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
