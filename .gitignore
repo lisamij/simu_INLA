@@ -20,6 +20,9 @@
 README.html
 inst/doc
 
+# Quarto 
+/.quarto/
+/_site/
 
 # Exploratory 
 analyses/exploratory/
@@ -27,3 +30,6 @@ analyses/exploratory/
 # renv local libraries
 renv/
 .Rprofile
+
+# INLA binaries
+INLA/

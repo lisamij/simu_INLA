@@ -29,6 +29,10 @@ webr:
     - sf
     - boot
 editor: visual
+execute: 
+  warning: false
+  message: false
+  echo: false
 ---
 
 ```{r}
@@ -109,7 +113,6 @@ simulate_datasets <- function(n_sites, n_years, n_visit, prop_visit, max_edge, l
 list_dataset <- list()
 
 for (dt in 1:n_dataset){
-    message(paste0("Simulating dataset iteration ",dt ))
 
 sites_list <- 1:n_sites # Spatial 
 years_list <- 1:n_years # Temporal primary 
@@ -356,7 +359,7 @@ hyper.pc.prec <- list(prec = list(prior = "pc.prec",
                                   param = c(1,0.5)))
 
 # defining the model formula for each case
-message("Running INLA")
+
 if (model == "spatial"){
   formula <- inla.mdata(Y,X) ~  -1 + Int_z + f(spatialfield, model=spde,A.local = A_sp_c) 
   func = function(..., mesh_pred, data_pred){
