@@ -1,0 +1,644 @@
+---
+project:
+  render:
+    - simu_spatial_field.qmd
+  type: website
+website:
+  title: "Occupancy models with spatial autocorrelation are biased in INLA"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - about.qmd
+
+format:
+  html:
+    toc: true
+    toc-location: left
+lang: en
+webr:
+  packages:
+    - ggplot2
+    - fmesher
+    - INLA
+    - terra
+    - spatstat.geom
+    - dplyr
+    - data.table
+    - raster
+    - sf
+    - boot
+editor: visual
+---
+
+```{r}
+# Load packages
+pck <- c("sf","rnaturalearth", "sp",
+         "here", "spatstat", "gt", "viridis", "viridisLite", "scico", "patchwork",
+         "tidyverse","data.table","countrycode","CoordinateCleaner","fixr",
+         "INLA","inlabru","INLAspacetime","broom","matrixStats", "fmesher", "terra", "MASS") 
+invisible(lapply(pck, require, character.only = TRUE))
+# Using latest release of INLA for occupancy functions for INLA
+project_folder = here::here()
+inla.setOption(inla.call= paste0(project_folder, INLA_PATH))
+seed = 42
+```
+
+**Context**
+
+We are using site-occupancy models to analyse large databases of occurences such as GBIF. We wanted to use the very nice implementation of spatial autocorrelation in INLA (Rue/lingrdren ?)
+
+We use the available vignettes, but we identified a systematic bias when modelling spatial autocorrelation.
+
+We start by using the simplest occupancy model possible, where $z_{i,t}$ represents the presence of a species at year $t$ and site $i$.
+
+$z$ depends on the probability of occupancy $\psi_{i,t}$ through a Bernouilli law: $z_{i,t} = \mathcal{B}(\psi_{i,t})$. $\psi$ can depend on other variables through a logit link, Here we investigate several combinations of the following elements: a fixed intercept, a temporal trend = and a spatial autocorrelation:
+
+$$\text{logit}(\psi_{i,t}) = \alpha_{0} + \alpha_1 t +  \omega_i $$
+
+The second part of the model is the detection part. Our data are detection data, $y_{i,t,k} = \mathcal{B}(p_{i,t,k} \times z_{i,t})$
+
+$p_{i,t,k} = \beta_0$
+
+Each year, a given proportion of sites are visited. Here we fix it to 50% to have a simple context for the model. Each site is visited every week, so 52 times per year.
+
+```{r}
+# Define the parameters of the dataset
+n_years <- 10
+n_visit <- 52
+prop_visit <- 0.5
+n_dataset <- 2
+
+# value of intercepts in the model
+prob_psi <- 0.3
+prob_p <- 0.2
+
+# Parameters of spatial field and mesh
+range <- 30
+sigma_m <- 1
+max_edge <- 6
+```
+
+We run our simulations on a simple spatial domain.
+
+```{r}
+# Define the spatial domain
+nc <- 100 #number of grid cells across latitude
+nr <- 100 #number of grid cells across longitude
+n_sites <- nc*nr
+# Define spatial domain
+win <- owin(c(0,100), c(0,100))
+
+Domain <- rast(nrows=nr, ncols=nc,
+               xmax=win$xrange[2],xmin=win$xrange[1],
+               ymax = win$yrange[2],ymin=win$yrange[1])
+
+values(Domain) <- 1:ncell(Domain)
+names(Domain)="cell_id"
+locs <- crds(Domain) 
+
+plot(Domain)
+```
+
+We simulate datasets with the parameters fixed above. First, the occupancy is computed on natural scale, then it is tranformed to the probability scale, and binary outcomes are drawn from this probability. The detections are simulated in the same way.
+
+```{r}
+# Simulating datasets
+simulate_datasets <- function(n_sites, n_years, n_visit, prop_visit, max_edge, locs, range, sigma_m, prob_psi, prob_p, model, n_dataset){
+# Empty list of dataset 
+list_dataset <- list()
+
+for (dt in 1:n_dataset){
+    message(paste0("Simulating dataset iteration ",dt ))
+
+sites_list <- 1:n_sites # Spatial 
+years_list <- 1:n_years # Temporal primary 
+visit_list <- 1:n_visit # Temporal secondary 
+n_visited <- n_sites*prop_visit
+
+# Create the visits and sampling effort
+total_sampling <- tibble()
+
+for (i in 1:n_years){
+  sampled_year <- sample(sites_list, size=n_visited, replace=FALSE)
+  effort <- 1 
+  effort_formatted <- tibble(site_id = rep(sampled_year, each = n_visit),
+                             year = rep(years_list[i], n_visited*n_visit),
+                             visit = rep(visit_list, n_visited),
+                             n_sp = effort)
+
+  total_sampling <- bind_rows(total_sampling, effort_formatted)
+}
+
+
+# Create the full combinations (empty frame)
+sampling_frame <- setDT(expand.grid(
+site_id = sites_list,
+year    = years_list,
+visit   = visit_list))
+
+sampling_f <-  merge(sampling_frame,total_sampling, by = c("site_id", "year", "visit"),all=TRUE) 
+
+sampling_f <- sampling_f %>%
+  arrange(visit, year, site_id)
+
+# Put in right format [sites, years, visits]
+effort_effect <- array(
+  sampling_f$n_sp,
+  dim = c(length(sites_list), length(years_list), length(visit_list)),
+  dimnames = list(
+    site  = sites_list,
+    year  = years_list,
+    visit = visit_list
+  )
+)
+
+    
+# Create the mesh 
+mesh <- fm_mesh_2d_inla(loc.domain=locs,
+                     max.edge = c(1,2)*max_edge,
+                    offset=c(max_edge, max_edge*5),
+                    cutoff = max_edge/5)
+
+spde <- inla.spde2.pcmatern(
+  mesh        = mesh,
+  prior.range = c(range, 0.5),   # Put prior centred on real value
+  prior.sigma = c(sigma_m, 0.5)
+)
+
+A_sp <- inla.spde.make.A(mesh = mesh, 
+                         loc=locs)
+
+
+# Precision matrix
+Q = inla.spde2.precision(spde, theta = c(log(range),
+                                              log(sigma_m)))
+# Simulate the spatial field
+
+sim_field = inla.qsample(n = 1, Q = Q, seed = seed)
+
+omega <- (A_sp %*% sim_field)[,1]
+
+omega_yearly <- cbind(data.table(omega), replicate(n_years -1,omega))
+
+# EMmpty matrix for z
+z <- matrix(nrow = 10000, ncol = n_years)
+
+# Chose model 
+if(model == "constant"){
+# Occupancy probabilities
+
+# True occupancy state
+for (i in 1:n_years){
+  z[,i] <- rbinom(n_sites, size = 1, prob = inla.link.logit(prob_psi, inverse = T))
+}
+
+
+}
+else if (model == "spatial"){
+# Occupancy probabilities
+psi <- inla.link.logit(prob_psi
+  +  omega_yearly 
+  , inverse = T)
+
+
+# True occupancy state
+for (i in 1:n_years){
+  z[,i] <- rbinom(n_sites, size = 1, prob = psi[,i])
+}
+
+}
+
+else if(model == "trend"){
+# Occupancy probabilities
+psi <- inla.link.logit(prob_psi
+  +  omega_yearly 
+  , inverse = T)
+
+
+# True occupancy state
+for (i in 1:n_years){
+  z[,i] <- rbinom(n_sites, size = 1, prob = psi[,i])
+}
+
+}
+
+
+
+
+# Detection probabilities and observed occurrences
+# Create empty matrix to store the results
+y <- array(NA,dim = c(n_sites, n_years, n_visit)) 
+  
+# loop over visits
+for (i in 1:n_years){
+for(j in 1:n_visit){
+ sites_visited <- which(!is.na(effort_effect[,i,j]))
+ prob <- plogis(prob_p)*z[sites_visited, i]
+ y[sites_visited,i,j] <- rbinom(n = n_visited,size = 1,prob = prob)
+} 
+}
+
+##########################
+
+# Get into INLA format
+# Need scale years 
+years_effect <-  array(rep(scale(as.numeric(years_list)), each = length(sites_list)),
+                      dim = c(length(sites_list), length(years_list)))
+
+year <- as.vector(years_effect)
+# Prepar vector for INLA format 
+INLA_y <- c()
+
+# Visits table 
+for(i in 1:n_years)
+{
+  INLA_y = rbind(INLA_y, y[,i,])
+}
+
+# Get which replicates are NA 
+INLA_y_effort <- INLA_y
+INLA_y_effort[!is.na(INLA_y_effort)] <- 1
+
+
+
+# Occupancy covariates 
+INLA_occ <- data.frame(
+          year_id = year-min(year)+1,
+          ID_grid = as.vector(rep(sites_list, n_years)),
+          Int_z = 1,
+          year_scaled = year,
+          x_grid = rep(locs[,1], n_years),
+          y_grid = rep(locs[,2], n_years),
+          spatialfield = NA,
+          true_int = rep(prob_psi, n_years*n_sites),
+          idTime = NA)
+  
+# Detection covariates 
+
+
+INLA_det <- data.frame(INLA_y_effort[,1]
+                            )
+  
+names(INLA_det) <- paste0(c("DetInt"),"_",1)
+        
+for(k in 2:n_visit){
+          tmp <- data.frame(INLA_y_effort[,k])
+          names(tmp) <- paste0(c("DetInt"),"_",k)
+          
+          INLA_det <- cbind(INLA_det, tmp)
+        }
+
+# Check and remove NAs in observation across visits
+keep = !apply(INLA_y,1,function(x)all(is.na(x)))
+INLA_y = INLA_y[keep,]
+
+# Keep full for predictions
+INLA_occ_pred = INLA_occ
+INLA_occ = INLA_occ[keep,]
+INLA_det = INLA_det[keep,]
+
+  
+# Assemble the data 
+        
+INLA_data = as.list(INLA_occ)
+INLA_data$Y = INLA_y
+INLA_data$X = INLA_det
+
+list_of_data <- list(INLA_data, INLA_occ_pred)
+
+
+list_dataset[[dt]] <- list_of_data  
+}
+return(list_dataset)
+}
+```
+
+We also have a function to analyse the datasets, in which we vary the model according to the type of data we simulated. Priors have been chosen according to recommendations by...
+
+```{r}
+
+
+# Function to analyse the datasets
+
+analyse_dataset_simple <- function(list_of_data, max_edge, range, sigma_m, prob_p, model){
+
+INLA_data <- list_of_data[[1]]
+INLA_pred <- list_of_data[[2]]
+true_int <- unique(INLA_data$true_int)
+# Create a mesh for the analysis and spde
+  
+mesh <- fm_mesh_2d_inla(loc.domain=locs,
+                     max.edge = c(1,2)*max_edge,
+                    offset=c(max_edge, max_edge*5),
+                    cutoff = max_edge/5)
+  
+
+spde <- inla.spde2.pcmatern(
+  mesh        = mesh,
+  prior.range = c(range, 0.5), 
+  prior.sigma = c(sigma_m, 0.5)
+)
+
+
+A_sp_c <- inla.spde.make.A(mesh = mesh, 
+                         loc=cbind(INLA_data$x_grid, INLA_data$y_grid))
+
+
+  
+# Priors
+hyper.prior.list.det <- list(beta1 = list(param = c(0,1/2.72),
+                                          initial = 0))
+  
+
+
+hyper.pc.prec <- list(prec = list(prior = "pc.prec",
+                                  param = c(1,0.5)))
+
+# defining the model formula for each case
+message("Running INLA")
+if (model == "spatial"){
+  formula <- inla.mdata(Y,X) ~  -1 + Int_z + f(spatialfield, model=spde,A.local = A_sp_c) 
+  func = function(..., mesh_pred, data_pred){
+  res = (Int_z +
+           (mesh_pred %*% spatialfield)[,1]
+  )
+    return(res)
+  }
+
+
+
+}
+
+else if(model == "constant"){
+  formula <- inla.mdata(Y,X) ~  -1 + Int_z 
+  func = function(..., data_pred, mesh_pred){
+  res = (Int_z*data_pred$Int_z)
+    return(res)
+  }
+
+}
+else{
+  formula <- inla.mdata(Y,X) ~  -1 + Int_z + year_scaled + f(spatialfield, model=spde,A.local = A_sp_c) 
+   func = function(..., mesh_pred, data_pred){
+  res = (Int_z + year_scaled*data_pred$year_scaled +
+           (mesh_pred %*% spatialfield)[,1]
+  )
+    return(res)
+  }
+
+
+
+}
+
+model_spat <- inla(formula, 
+                                     data=INLA_data,  
+                                     family= 'occupancy',  
+                                     num.threads = 4,
+                                     control.fixed =  list(prec = 1/2.72, prec.intercept = 1/2.72),
+                                     control.compute = list(waic = TRUE, config = TRUE,
+                                              residuals = T,
+                                              return.marginals.predictor=TRUE), 
+                       control.inla = list(int.strategy = "eb"), 
+                       control.family = list(control.link = list(model = "logit"), 
+                                             link.simple = "logit",
+                                             hyper = hyper.prior.list.det))
+
+  
+
+message("Predicting")
+OccEff <- model_spat$summary.fixed 
+DetEff <- model_spat$summary.hyperpar  
+
+A_sp_c_pred <- inla.spde.make.A(mesh = mesh, 
+                         loc=cbind(INLA_pred$x_grid, INLA_pred$y_grid))
+
+PostDistSamples <- inla.posterior.sample(500, model_spat) # get coef samples
+
+# Apply function (merge coeff samples w/ new covariates)
+PostDist_newCov <- inla.posterior.sample.eval(func, PostDistSamples,
+                                                data_pred = INLA_pred, mesh_pred = A_sp_c_pred,
+                                                HyperParam.summary = DetEff,
+                                                Bern.trial = F, parallel.configs = FALSE)
+
+# Get back on probability scale
+PostDist_newCov_inv <- inla.link.logit(PostDist_newCov, inverse = T)
+
+# Processing posterior distribution samples w/ chunks of sites x years combinaisons
+  chunks <- split(1:nrow(PostDist_newCov), ceiling(seq_along(1:nrow(PostDist_newCov))/5000)) # split per Batch_size
+  chunk_list <- list()
+  # For each row, there are 500 columns that are the post dist 
+  for(c in seq_along(chunks)){
+    # subsets
+    subset <- chunks[[c]]
+    tmp <- PostDist_newCov[subset, , drop = FALSE]
+    tmp_inv<- PostDist_newCov_inv[subset, , drop = FALSE]
+    # avg/sd/ci
+    mean_post <- rowMeans2(tmp)
+    sd_post <- rowSds(tmp)
+    mean_inv <- rowMeans2(tmp_inv)
+    ci_inv <- rowQuantiles(tmp_inv, probs = c(0.025, 0.975))
+    
+    # storing tmp results
+    chunk_tmp <- data.frame(
+      mean = mean_post,
+      sd = sd_post,
+      mean_invLogit = mean_inv,
+      lci_invLogit = ci_inv[,1],
+      uci_invLogit = ci_inv[,2])
+    
+    chunk_list[[c]] <- chunk_tmp
+
+  }
+
+# Bind with the metadata, because it has stayed in the same order 
+Pred_data_plot <- cbind(INLA_pred[,c("ID_grid","year_scaled","year_id","x_grid","y_grid")],
+                            rbindlist(chunk_list))
+
+# we just want the overall occupancy so we can directly do 
+
+occ_mean <- mean(Pred_data_plot$mean) # Occupancy on natural scale
+occ_sd <- sd(Pred_data_plot$mean)
+
+results_inter <- tibble(
+pred_mean = occ_mean,
+pred_sd =occ_sd,
+coeff_mean = model_spat$summary.fixed$mean[[1]],
+coeff_sd = model_spat$summary.fixed$sd[[1]],
+coeff_lwr = model_spat$summary.fixed$`0.025quant`[[1]],
+coeff_upr = model_spat$summary.fixed$`0.975quant`[[1]],
+true = true_int,
+value = "occ_int")
+
+if(model == "spatial"){
+results_range <- tibble(
+  coeff_mean = model_spat$summary.hyperpar$mean[[2]],
+  coeff_sd = model_spat$summary.hyperpar$sd[[2]],
+  coeff_lwr = model_spat$summary.hyperpar$`0.025quant`[[2]],
+  coeff_upr = model_spat$summary.hyperpar$`0.975quant`[[2]],
+  true = range,
+  value = "range"
+)
+
+results_sigma <- tibble(
+  coeff_mean = model_spat$summary.hyperpar$mean[[3]],
+  coeff_sd = model_spat$summary.hyperpar$sd[[3]],
+    coeff_lwr = model_spat$summary.hyperpar$`0.025quant`[[3]],
+  coeff_upr = model_spat$summary.hyperpar$`0.975quant`[[3]],
+  true = sigma_m,
+  value = "sigma"
+)
+}
+else{
+  results_range <- NULL
+  results_sigma <- NULL
+}
+
+results_det <- tibble(
+  coeff_mean = model_spat$summary.hyperpar$mean[[1]],
+  coeff_sd = model_spat$summary.hyperpar$sd[[1]],
+    coeff_lwr = model_spat$summary.hyperpar$`0.025quant`[[1]],
+  coeff_upr = model_spat$summary.hyperpar$`0.975quant`[[1]],
+  true = prob_p,
+  value = "det_int"
+)
+
+results <- bind_rows(results_inter, results_range, results_sigma, results_det)
+
+return(results)
+
+}
+```
+
+First, we run the model without any spatial field. We start by varying the occupancy intercept.
+
+```{r}
+
+# Different values for occupancy intercept 
+psi_vector <- seq(-5, 5, 0.5)
+
+# Generate three datasets per value 
+list_dataset <- sapply(psi_vector,
+                        simulate_datasets,
+                        n_sites = n_sites,
+                          n_years = n_years,
+                          n_visit = n_visit,
+                          prop_visit = prop_visit,
+                          range = range,
+                          sigma_m = sigma_m,
+                          model = "constant",
+                          max_edge = max_edge,
+                          locs = locs, 
+                          prob_p = prob_p,
+                          n_dataset = n_dataset)
+
+# Formula to analyse the dataset 
+formula_constant <- inla.mdata(Y,X) ~  -1 + Int_z 
+
+# Function for prediction
+func_constant = function(..., data_pred, mesh_pred){
+  res = (Int_z*data_pred$Int_z)
+    return(res)
+  }
+
+# Get the results 
+all_results <- lapply(list_dataset, analyse_dataset_simple, max_edge = max_edge, range = range, sigma_m = sigma_m, prob_p = prob_p, model = "constant")
+
+results <- bind_rows(all_results)
+
+parameters <- results %>%
+  dplyr::select(coeff_mean, coeff_sd, true, value, coeff_lwr, coeff_upr)
+
+occupancy <- results %>%
+  dplyr::filter(value == "occ_int")
+
+# 
+p1=ggplot(data=parameters,aes(x=true,y=coeff_mean))+
+  geom_pointrange(aes(ymin=coeff_upr,ymax=coeff_lwr),alpha=0.7)+
+    geom_point(aes(y=true),color="red")+
+  ylab("Parameter value/estimation")+
+  xlab("Simulated intercept")+
+  ggtitle("a",subtitle="Parameter estimation")+
+  facet_wrap(~value,scales="free_y",labeller=labeller(variable = c(occ_int="Intercept Occupancy",
+                  det_int="Intercept Detection")))+
+  theme_bw()
+
+        
+p3=ggplot(data=occupancy,aes(x=true,group=true))+
+    stat_summary(aes(y=pred_mean),color="black",alpha=0.7)+
+  stat_summary(aes(y=true),color="red",geom="point")+
+  ylab("Average occupancy probability")+
+  ggtitle("b",subtitle="Overall occupancy estimation")+
+  theme_bw()
+
+p1
+p3
+```
+
+Now we add the spatial autocorrelation
+
+```{r}
+formula_spatial <- inla.mdata(Y,X) ~  -1 + Int_z + f(spatialfield, model=spde,A.local = A_sp_c) 
+
+# Function for prediction
+func_spatial = function(..., mesh_pred, data_pred){
+  res = (Int_z +
+           (mesh_pred %*% spatialfield)[,1]
+  )
+    return(res)
+  }
+
+
+
+# Different values for occupancy intercept 
+psi_vector <- seq(-4, 4, 1)
+
+# Generate three datasets per value 
+list_dataset <- sapply(psi_vector,
+                        simulate_datasets,
+                        n_sites = n_sites,
+                          n_years = n_years,
+                          n_visit = n_visit,
+                          prop_visit = prop_visit,
+                          range = range,
+                          sigma_m = sigma_m,
+                          model = "spatial",
+                          max_edge = max_edge,
+                          locs = locs, 
+                          prob_p = prob_p,
+                          n_dataset = n_dataset)
+
+
+# Get the results 
+all_results <- lapply(list_dataset, analyse_dataset_simple, max_edge = max_edge, range = range, sigma_m = sigma_m, prob_p = prob_p, model = "spatial")
+
+results <- bind_rows(all_results)
+
+parameters <- results %>%
+  dplyr::select(coeff_mean, coeff_sd, true, value, coeff_lwr, coeff_upr)
+
+occupancy <- results %>%
+  dplyr::filter(value == "occ_int")
+
+# 
+p1=ggplot(data=parameters,aes(x=true,y=coeff_mean))+
+  geom_pointrange(aes(ymin=coeff_upr,ymax=coeff_lwr),alpha=0.7)+
+    geom_point(aes(y=true),color="red")+
+  ylab("Parameter value/estimation")+
+  xlab("Simulated intercept")+
+  ggtitle("a",subtitle="Parameter estimation")+
+  facet_wrap(~value,scales="free_y",labeller=labeller(variable = c(occ_int="Intercept Occupancy",
+                  det_int="Intercept Detection")))+
+  theme_bw()
+
+        
+p3=ggplot(data=occupancy,aes(x=true,group=true))+
+    stat_summary(aes(y=pred_mean),color="black",alpha=0.7)+
+  stat_summary(aes(y=true),color="red",geom="point")+
+  ylab("Average occupancy probability")+
+  ggtitle("b",subtitle="Overall occupancy estimation")+
+  theme_bw()
+
+p1
+p3
+```
