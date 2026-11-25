@@ -22,7 +22,7 @@ inst/doc
 
 # Quarto 
 /.quarto/
-/_site/
+/simu_spatial_test_site/
 
 # Exploratory 
 analyses/exploratory/
@@ -33,3 +33,12 @@ renv/
 
 # INLA binaries
 INLA/
+
+exploratory/
+
+plots/
+
+
+# HTML files
+*.HTML
+*.rmarkdown
