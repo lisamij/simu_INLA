@@ -107,7 +107,7 @@ We simulate datasets with the parameters fixed above. First, the occupancy is co
 
 ```{r}
 # Simulating datasets
-simulate_datasets <- function(n_sites, n_years, n_visit, max_edge, locs, range, sigma_m, prob_psi, prob_p, model, trend, n_dataset){
+simulate_datasets <- function(n_sites, n_years, n_visit, max_edge, locs, range, sigma_m, prob_psi, prob_p, trend, n_dataset){
 # Empty list of dataset 
 
 list_dataset <- list()
@@ -155,37 +155,16 @@ for (dt in 1:n_dataset){
     # EMmpty matrix for z
     z <- matrix(nrow = 10000, ncol = n_years)
 
-    # Chose model for occupancy
-    if(model == "constant"){
-        # True occupancy state
-        for (i in 1:n_years){
-           psi <- prob_psi
-           z[,i] <- rbinom(n_sites, size = 1, prob = inla.link.logit(prob_psi, inverse=T))
-        }
-    }
-    else if (model == "spatial"){
-        # Occupancy probabilities
-        psi <- inla.link.logit(prob_psi
-          +  omega_yearly 
-          , inverse = T)
 
-        # True occupancy state
-        for (i in 1:n_years){
-            z[,i] <- rbinom(n_sites, size = 1, prob = psi[,i])
-        }
-    }
-
-    else if(model == "trend"){
     # Occupancy probabilities
-        psi <- inla.link.logit(prob_psi + trend*years_effect + omega_yearly, inverse = T)
+    psi <- inla.link.logit(prob_psi + trend*years_effect + omega_yearly, inverse = T)
 
-        # True occupancy state
-        for (i in 1:n_years){
+    # True occupancy state
+    for (i in 1:n_years){
             z[,i] <- rbinom(n_sites, size = 1, prob = psi[,i])
         }
 
-    }
-
+    
     # Detection probabilities and observed occurrences
     # Create empty matrix to store the results
     y <- array(NA,dim = c(n_sites, n_years, n_visit)) 
@@ -214,8 +193,6 @@ for (dt in 1:n_dataset){
     # Get which replicates are NA 
     INLA_y_effort <- INLA_y
     INLA_y_effort[!is.na(INLA_y_effort)] <- 1
-
-
 
     # Occupancy covariates 
     INLA_occ <- data.frame(
@@ -272,7 +249,7 @@ We also have a function to analyse the datasets, in which we vary the model acco
 
 ```{r}
 # Different values for occupancy intercept 
-ptab=expand.grid(psi_vector=seq(-5, 5, 1),trend=c(-0.1,0))
+ptab=expand.grid(psi_vector=seq(-4, 4, 0.5),trend=c(-0.5,0, 0.5))
 
 # Generate three datasets per value 
 list_dataset <- purrr::map2(ptab$psi_vector,ptab$trend,simulate_datasets,
@@ -284,8 +261,7 @@ list_dataset <- purrr::map2(ptab$psi_vector,ptab$trend,simulate_datasets,
                           max_edge = max_edge,
                           locs = locs, 
                           prob_p = prob_p,
-                          n_dataset = n_dataset,
-                          model = "trend")
+                          n_dataset = n_dataset)
 
 #exemple
 tab=list_dataset[[5]][[1]][[2]]
@@ -311,7 +287,7 @@ cowplot::plot_grid(pl1,pl2,ncol=1,align="hv")
 ```{r}
 # Function to analyse the datasets
 
-analyse_dataset_simple <- function(list_of_data, max_edge, range, sigma_m, prob_p, model, locs){
+analyse_dataset_simple <- function(list_of_data, max_edge, range, sigma_m, prob_p, locs){
 
 
 # Get the data and data for prediction
@@ -344,35 +320,17 @@ hyper.prior.list.det <- list(beta1 = list(param = c(0,1/2.72),
 hyper.pc.prec <- list(prec = list(prior = "pc.prec",
                                   param = c(1,0.5)))
 
-# defining the model formula for each case
+# defining the model formula 
 
-if (model == "spatial"){
-    formula <- inla.mdata(Y,X) ~  -1 + Int_z + f(spatialfield, model=spde,A.local = A_sp_c) 
-    func = function(..., mesh_pred, data_pred){
-    res = (Int_z*data_pred$Int_z +
-            (mesh_pred %*% spatialfield)[,1]
-    )
-      return(res)
-    }
-}
+formula <- inla.mdata(Y,X) ~  -1 + Int_z + year_scaled + f(spatialfield, model=spde,A.local = A_sp_c) 
 
-else if(model == "constant"){
-    formula <- inla.mdata(Y,X) ~  -1 + Int_z 
-    func = function(..., data_pred, mesh_pred){
-    res = (Int_z*data_pred$Int_z)
-      return(res)
-    }
-
-}
-else{
-    formula <- inla.mdata(Y,X) ~  -1 + Int_z + year_scaled + f(spatialfield, model=spde,A.local = A_sp_c) 
-    func = function(..., mesh_pred, data_pred){
+func = function(..., mesh_pred, data_pred){
     res = (Int_z + year_scaled*data_pred$year_scaled +
             (mesh_pred %*% spatialfield)[,1]
     )
       return(res)
     }
-}
+
 
 model_spat <- inla(formula, 
                                      data=INLA_data,  
@@ -392,6 +350,16 @@ model_spat <- inla(formula,
 OccEff <- model_spat$summary.fixed 
 DetEff <- model_spat$summary.hyperpar  
 
+results_occ <- as.data.frame(OccEff)[, c(1,2,3, 5)] %>%
+  rename(lwr = `0.025quant`, upr = `0.975quant`)
+results_occ$value=c("occ_int","trend")
+results_occ$true=c(true_int,unique(INLA_pred$trend))
+
+results_random <- as.data.frame(DetEff)[, c(1,2,3, 5)] %>%
+  rename(lwr = `0.025quant`, upr = `0.975quant`)
+results_random$value=c("det_int","range", "sigma")
+results_random$true=c(prob_p,range, sigma_m)
+
 A_sp_c_pred <- inla.spde.make.A(mesh = mesh, 
                          loc=cbind(INLA_pred$x_grid, INLA_pred$y_grid))
 
@@ -403,173 +371,43 @@ PostDist_newCov <- inla.posterior.sample.eval(func, PostDistSamples,
                                                 HyperParam.summary = DetEff,
                                                 Bern.trial = F, parallel.configs = FALSE)
 
-# Get back on probability scale
-PostDist_newCov_inv <- inla.link.logit(PostDist_newCov, inverse = T)
+# Get the mean
+vec1=apply(PostDist_newCov,2,mean)
 
-# Processing posterior distribution samples w/ chunks of sites x years combinaisons
-chunks <- split(1:nrow(PostDist_newCov), ceiling(seq_along(1:nrow(PostDist_newCov))/5000)) # split per Batch_size
-chunk_list <- list()
-# For each row, there are 500 columns that are the post dist 
-for(c in seq_along(chunks)){
-    # subsets
-    subset <- chunks[[c]]
-    tmp <- PostDist_newCov[subset, , drop = FALSE]
-    tmp_inv<- PostDist_newCov_inv[subset, , drop = FALSE]
-    # avg/sd/ci
-    mean_post <- rowMeans2(tmp)
-    sd_post <- rowSds(tmp)
-    mean_inv <- rowMeans2(tmp_inv)
-    ci_inv <- rowQuantiles(tmp_inv, probs = c(0.025, 0.975))
-    
-    # storing tmp results
-    chunk_tmp <- data.frame(
-      mean = mean_post,
-      sd = sd_post,
-      mean_invLogit = mean_inv,
-      lci_invLogit = ci_inv[,1],
-      uci_invLogit = ci_inv[,2])
-    
-    chunk_list[[c]] <- chunk_tmp
+results_pred = data.frame(mean = mean(vec1),
+                sd = sd(vec1),
+                lwr= quantile(vec1,prob=0.025),
+                upr=quantile(vec1,prob=0.975),
+                true = true_int,
+                value = "pred_occ")
 
-  }
+results <- bind_rows(results_occ, results_random, results_pred)
 
-# Bind with the metadata, because it has stayed in the same order 
-Pred_data_plot <- cbind(INLA_pred[,c("ID_grid","year_scaled","year_id","x_grid","y_grid")],rbindlist(chunk_list))
-
-# Now we get the results
-if (model == "trend"){
-    # if there is a trend, we are interested in the occupancy per year
-      true_per_year <- true_int + trend*unique(Pred_data_plot$year_scaled)
-      small_results <- Pred_data_plot %>%
-        group_by(year_id)%>% 
-        summarise(mean_year = mean(mean),
-              sd = sd(mean)) 
-      
-      results_per_year <- tibble(
-      year = unique(Pred_data_plot$year_id),
-      pred_mean = small_results$mean_year,
-      pred_sd = small_results$sd,
-      coeff_mean = rep(model_spat$summary.fixed$mean[[1]], n_years),
-      coeff_sd = rep(model_spat$summary.fixed$sd[[1]], n_years),
-      coeff_lwr = rep(model_spat$summary.fixed$`0.025quant`[[1]], n_years),
-      coeff_upr = rep(model_spat$summary.fixed$`0.975quant`[[1]], n_years),
-      true = true_per_year,
-      value = rep("occ_year", n_years))
-
-      results_inter <- tibble(
-      coeff_mean = model_spat$summary.fixed$mean[[1]],
-      coeff_sd = model_spat$summary.fixed$sd[[1]],
-      coeff_lwr = model_spat$summary.fixed$`0.025quant`[[1]],
-      coeff_upr = model_spat$summary.fixed$`0.975quant`[[1]],
-      true = true_int,
-      value = "occ_int")
-
-      results_trend <- tibble(
-      coeff_mean = model_spat$summary.fixed$mean[[2]],
-      coeff_sd = model_spat$summary.fixed$sd[[2]],
-      coeff_lwr = model_spat$summary.fixed$`0.025quant`[[2]],
-      coeff_upr = model_spat$summary.fixed$`0.975quant`[[2]],
-      true = trend,
-      value = "trend")
-      }
-else{
-    # if no trend we just want the overall occupancy so we can directly do 
-    occ_mean <- mean(Pred_data_plot$mean) # Occupancy on natural scale
-    occ_sd <- sd(Pred_data_plot$mean)
-
-    results_inter <- tibble(
-      pred_mean = occ_mean,
-      pred_sd = occ_sd,
-      coeff_mean = model_spat$summary.fixed$mean[[1]],
-      coeff_sd = model_spat$summary.fixed$sd[[1]],
-      coeff_lwr = model_spat$summary.fixed$`0.025quant`[[1]],
-      coeff_upr = model_spat$summary.fixed$`0.975quant`[[1]],
-      true = true_int,
-      value = "occ_int")
-
-      
-    results_per_year <- NULL
-    results_trend <- NULL
-      }
-
-
-# if model is spatial 
-if(model == "spatial" | model == "trend"){
-      results_range <- tibble(
-        coeff_mean = model_spat$summary.hyperpar$mean[[2]],
-        coeff_sd = model_spat$summary.hyperpar$sd[[2]],
-        coeff_lwr = model_spat$summary.hyperpar$`0.025quant`[[2]],
-        coeff_upr = model_spat$summary.hyperpar$`0.975quant`[[2]],
-        true = range,
-        value = "range"
-      )
-
-      results_sigma <- tibble(
-        coeff_mean = model_spat$summary.hyperpar$mean[[3]],
-        coeff_sd = model_spat$summary.hyperpar$sd[[3]],
-        coeff_lwr = model_spat$summary.hyperpar$`0.025quant`[[3]],
-        coeff_upr = model_spat$summary.hyperpar$`0.975quant`[[3]],
-        true = sigma_m,
-        value = "sigma"
-      )
-}
-else{
-      results_range <- NULL
-      results_sigma <- NULL
-}
-
-# results for detection, all models
-results_det <- tibble(
-  coeff_mean = model_spat$summary.hyperpar$mean[[1]],
-  coeff_sd = model_spat$summary.hyperpar$sd[[1]],
-  coeff_lwr = model_spat$summary.hyperpar$`0.025quant`[[1]],
-  coeff_upr = model_spat$summary.hyperpar$`0.975quant`[[1]],
-  true = prob_p,
-  value = "det_int"
-)
-
-results <- bind_rows(results_inter, results_range, results_sigma, results_det, results_per_year, results_trend)
+rm(model_spat, PostDist_newCov)
 
 return(results)
 }
 ```
 
-First, we run the model without any spatial field. We start by varying the occupancy intercept.
+Now we can run the models on our datasets. 
 
 ```{r}
-# Different values for occupancy intercept 
-psi_vector <- seq(-4, 4, 0.2)
+all_results <- lapply(unlist(list_dataset, recursive=FALSE), analyse_dataset_simple, max_edge = max_edge, range = range, sigma_m = sigma_m, prob_p = prob_p, locs = locs)
 
-# Generate three datasets per value 
-list_dataset <- sapply(psi_vector,
-                        simulate_datasets,
-                        n_sites = n_sites,
-                          n_years = n_years,
-                          n_visit = n_visit,
-                          range = range,
-                          sigma_m = sigma_m,
-                          model = "constant",
-                          max_edge = max_edge,
-                          locs = locs, 
-                          prob_p = prob_p,
-                          n_dataset = n_dataset,
-                          trend = trend)
-
-# Get the results 
-all_results <- lapply(list_dataset, analyse_dataset_simple, max_edge = max_edge, range = range, sigma_m = sigma_m, prob_p = prob_p, model = "constant", locs = locs)
 
 results <- bind_rows(all_results)
 
 parameters <- results %>%
-  dplyr::select(coeff_mean, coeff_sd, true, value, coeff_lwr, coeff_upr)
+  dplyr::filter(value %in% c("occ_int", "trend", "det_int", "range", "sigma")) 
 
-occupancy <- results %>%
-  dplyr::filter(value == "occ_int") %>%
-  mutate(pred_lower = pred_mean - 1.96 * (pred_sd/sqrt(n_sites)),
-         pred_upper = pred_mean + 1.96 * (pred_sd/sqrt(n_sites)))
+pred <- results %>%
+  dplyr::filter(value == "pred_occ")
 
-p1=ggplot(data=parameters,aes(x=true,y=coeff_mean))+
-  geom_pointrange(aes(ymin=coeff_lwr,ymax=coeff_upr),alpha=0.7)+
+int_results <- results %>%
+  dplyr::filter(value %in% c("occ_int", "pred_occ"))
+
+p1=ggplot(data=parameters,aes(x=true,y=mean))+
+  geom_pointrange(aes(ymin=lwr,ymax=upr),alpha=0.7)+
     geom_point(aes(y=true),color="red")+
   ylab("Parameter value/estimation")+
   xlab("Simulated value")+
@@ -579,176 +417,25 @@ p1=ggplot(data=parameters,aes(x=true,y=coeff_mean))+
   theme_bw()
 
         
-p3=ggplot(data=occupancy,aes(x=true,y=pred_mean))+
-  geom_pointrange(aes(ymin=pred_lower,ymax=pred_upper),alpha=0.7)+
+p3=ggplot(data=pred,aes(x=true,y=mean))+
+  geom_pointrange(aes(ymin=lwr,ymax=upr),alpha=0.7)+
   geom_point(aes(y=true),color="red")+
   ylab("Average occupancy probability")+
+  ggtitle("b",subtitle="Overall occupancy estimation")+
+  theme_bw()
+
+p2=ggplot(data=int_results,aes(x=true,y=mean, color = value))+
+  geom_pointrange(aes(ymin=lwr,ymax=upr),alpha=0.7)+
+  geom_point(aes(y=true),color="red")+
+  ylab("Average occupancy probability")+
+  xlim(0,1)+
   ggtitle("b",subtitle="Overall occupancy estimation")+
   theme_bw()
 
 p1
 p3
+p2
+
+rm(all_results, list_dataset)
 ```
-
-This look fine, but we can look more in detail
-
-```{r}
-p_zoom=ggplot(data=occupancy,aes(x=true,y=pred_mean))+
-  geom_pointrange(aes(ymin=pred_lower,ymax=pred_upper),alpha=0.7)+
-  geom_point(aes(y=true),color="red")+
-  ylab("Average occupancy probability")+
-  ylab("Average occupancy probability")+
-  ylim(0,1)+
-  ggtitle("b",subtitle="Overall occupancy estimation")+
-  theme_bw()
-
-p_zoom
-```
-
-Now we add the spatial autocorrelation
-
-```{r}
-# Generate three datasets per value 
-list_dataset <- sapply(psi_vector,
-                        simulate_datasets,
-                        n_sites = n_sites,
-                          n_years = n_years,
-                          n_visit = n_visit,
-                          range = range,
-                          sigma_m = sigma_m,
-                          model = "spatial",
-                          max_edge = max_edge,
-                          locs = locs, 
-                          prob_p = prob_p,
-                          n_dataset = n_dataset,
-                          trend = trend)
-
-
-# Get the results 
-all_results <- lapply(list_dataset, analyse_dataset_simple, max_edge = max_edge, range = range, sigma_m = sigma_m, prob_p = prob_p, model = "spatial", locs = locs)
-
-results <- bind_rows(all_results)
-
-parameters <- results %>%
-  dplyr::select(coeff_mean, coeff_sd, true, value, coeff_lwr, coeff_upr)
-
-
-occupancy <- results %>%
-  dplyr::filter(value == "occ_int") %>%
-  mutate(pred_lower = pred_mean - 1.96 * (pred_sd/sqrt(n_sites)),
-         pred_upper = pred_mean + 1.96 * (pred_sd/sqrt(n_sites)))
-
-# 
-p1=ggplot(data=parameters,aes(x=true,y=coeff_mean))+
-  geom_pointrange(aes(ymin=coeff_upr,ymax=coeff_lwr),alpha=0.7)+
-    geom_point(aes(y=true),color="red")+
-  ylab("Parameter value/estimation")+
-  xlab("Simulated value")+
-  ggtitle("a",subtitle="Parameter estimation")+
-  facet_wrap(~value,scales="free",labeller=labeller(variable = c(occ_int="Intercept Occupancy", range = "Spatial Range",
-                  det_int="Intercept Detection", sigma = "Spatial variation" )))+
-  theme_bw()
-
-        
-p3=ggplot(data=occupancy,aes(x=true,y=pred_mean))+
-  geom_pointrange(aes(ymin=pred_lower,ymax=pred_upper),alpha=0.7)+
-  geom_point(aes(y=true),color="red")+
-  ylab("Average occupancy probability")+
-  ggtitle("b",subtitle="Overall occupancy estimation")+
-  theme_bw()
-
-p1
-p3
-```
-
-Same, we look closer on the plot:
-
-```{r}
-p_zoom=ggplot(data=occupancy,aes(x=true,y=pred_mean))+
-  geom_pointrange(aes(ymin=pred_lower,ymax=pred_upper),alpha=0.7)+
-  geom_point(aes(y=true),color="red")+
-  ylab("Average occupancy probability")+
-  ylab("Average occupancy probability")+
-  ylim(0,1)+
-  ggtitle("b",subtitle="Overall occupancy estimation")+
-  theme_bw()
-
-p_zoom
-```
-
-Finally, this bias affect our estimate of the trend
-
-```{r}
-
-# Generate three datasets per value 
-list_dataset <- sapply(psi_vector,
-                        simulate_datasets,
-                        n_sites = n_sites,
-                          n_years = n_years,
-                          n_visit = n_visit,
-                          range = range,
-                          sigma_m = sigma_m,
-                          model = "trend",
-                          max_edge = max_edge,
-                          locs = locs, 
-                          prob_p = prob_p,
-                          n_dataset = n_dataset,
-                          trend = trend)
-
-
-# Get the results 
-
-all_results <- lapply(list_dataset, , analyse_dataset_simple, max_edge = max_edge, range = range, sigma_m = sigma_m, prob_p = prob_p, model = "trend", locs = locs)
-
-results <- bind_rows(all_results)
-
-parameters <- results %>%
-  dplyr::select(coeff_mean, coeff_sd, true, value, coeff_lwr, coeff_upr) %>%
-  filter(value != "occ_year")
-
-
-occupancy <- results %>%
-  dplyr::filter(value == "occ_year") %>%
-  mutate(pred_lower = pred_mean - 1.96 * (pred_sd/sqrt(n_sites)),
-         pred_upper = pred_mean + 1.96 * (pred_sd/sqrt(n_sites)))
-
-# 
-p1=ggplot(data=parameters,aes(x=true,y=coeff_mean))+
-  geom_pointrange(aes(ymin=coeff_upr,ymax=coeff_lwr),alpha=0.7)+
-    geom_point(aes(y=true),color="red")+
-  ylab("Parameter value/estimation")+
-  xlab("Simulated value")+
-  ggtitle("a",subtitle="Parameter estimation")+
-  facet_wrap(~value,scales="free",labeller=labeller(variable = c(occ_int="Intercept Occupancy", range = "Spatial Range",
-                  det_int="Intercept Detection", sigma = "Spatial variation"), trend = "Trend"))+
-  theme_bw()
-
-        
-p3=ggplot(data=occupancy,aes(x=true,y=pred_mean))+
-  geom_pointrange(aes(ymin=pred_lower,ymax=pred_upper),alpha=0.7)+
-  geom_point(aes(y=true),color="red")+
-  ylab("Average occupancy")+
-  ggtitle("b",subtitle="Overall occupancy estimation")+
-  facet_wrap(~year)+
-  theme_bw()
-
-p1
-p3
-```
-
-Same, we look closer on the plot:
-
-```{r}
-p_zoom=ggplot(data=occupancy,aes(x=true,y=pred_mean))+
-  geom_pointrange(aes(ymin=pred_lower,ymax=pred_upper),alpha=0.7)+
-  geom_point(aes(y=true),color="red")+
-  ylab("Average occupancy")+
-  ggtitle("b",subtitle="Overall occupancy estimation")+
-  ylim(0,1)+
-  facet_wrap(~year)+
-  theme_bw()
-
-p_zoom
-```
-
 
