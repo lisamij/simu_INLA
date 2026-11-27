@@ -51,7 +51,7 @@ seed = 42
 
 We are using site-occupancy models to analyse large databases of occurences such as GBIF. We wanted to use the very nice implementation of spatial autocorrelation in INLA (Lindgren & Rue 2015)
 
-We use the available vignettes, but we identified a systematic bias when modelling spatial autocorrelation: the estimated spatial field often has a non-null average (uncentered spatial field), which bias the estimate of the intercept. Although the sum of both remain well estimated, this might be a problem in some context. So we would like to advertise that potential problem.
+We use the available vignettes (Belmont et al. 2024), but we identified a systematic bias when modelling spatial autocorrelation: the estimated spatial field often has a non-null average (uncentered spatial field), which bias the estimate of the intercept. Although the sum of both remain well estimated, this might be a problem in some context. So we would like to advertise that potential problem.
 
 We start by using the simplest occupancy model possible, where $z_{i,t}$ represents the presence of a species at year $t$ and site $i$.
 
@@ -245,7 +245,7 @@ return(list_dataset)
 }
 ```
 
-We also have a function to analyse the datasets, in which we vary the model according to the type of data we simulated. Priors have been chosen according to recommendations by...
+We also have a function to analyse the datasets, in which we vary the model according to the type of data we simulated. Priors have been chosen according to recommendations by Belmont et al. 2024. 
 
 ```{r}
 # Different values for occupancy intercept 
@@ -264,7 +264,7 @@ list_dataset <- purrr::map2(ptab$psi_vector,ptab$trend,simulate_datasets,
                           n_dataset = n_dataset)
 
 #exemple
-tab=list_dataset[[5]][[1]][[2]]
+tab=list_dataset[[3]][[1]][[2]]
 
 pl1=ggplot(data=tab,aes(x=x_grid,y=y_grid,fill=occupancy))+
   geom_tile()+facet_wrap(~year_id,ncol=5)+
@@ -381,19 +381,20 @@ results_pred = data.frame(mean = mean(vec1),
                 true = true_int,
                 value = "pred_occ")
 
-results <- bind_rows(results_occ, results_random, results_pred)
+results <- bind_rows(results_occ, results_random, results_pred) %>%
+  mutate(true_int = true_int,
+         true_trend = unique(INLA_pred$trend))
 
-rm(model_spat, PostDist_newCov)
+rm(model_spat, PostDist_newCov, PostDistSamples)
 
 return(results)
 }
 ```
 
-Now we can run the models on our datasets. 
+Now we can run the models on our datasets and plot the estimated and true parameters. True values are repotred with red dots. 
 
 ```{r}
 all_results <- lapply(unlist(list_dataset, recursive=FALSE), analyse_dataset_simple, max_edge = max_edge, range = range, sigma_m = sigma_m, prob_p = prob_p, locs = locs)
-
 
 results <- bind_rows(all_results)
 
@@ -412,30 +413,64 @@ p1=ggplot(data=parameters,aes(x=true,y=mean))+
   ylab("Parameter value/estimation")+
   xlab("Simulated value")+
   ggtitle("a",subtitle="Parameter estimation")+
-  facet_wrap(~value,scales="free",labeller=labeller(variable = c(occ_int="Intercept Occupancy",
-                  det_int="Intercept Detection")))+
+  facet_wrap(~value,scales="free",labeller=labeller(value = c(occ_int="Intercept Occupancy",det_int="Intercept Detection", range = "Spatial Range", sigma = "Spatial SD", trend = "Trend")))+
   theme_bw()
 
-        
-p3=ggplot(data=pred,aes(x=true,y=mean))+
-  geom_pointrange(aes(ymin=lwr,ymax=upr),alpha=0.7)+
-  geom_point(aes(y=true),color="red")+
-  ylab("Average occupancy probability")+
-  ggtitle("b",subtitle="Overall occupancy estimation")+
-  theme_bw()
 
 p2=ggplot(data=int_results,aes(x=true,y=mean, color = value))+
   geom_pointrange(aes(ymin=lwr,ymax=upr),alpha=0.7)+
   geom_point(aes(y=true),color="red")+
   ylab("Average occupancy probability")+
-  xlim(0,1)+
   ggtitle("b",subtitle="Overall occupancy estimation")+
   theme_bw()
 
-p1
-p3
-p2
 
-rm(all_results, list_dataset)
+p3 = ggplot(data = int_results, aes(x = true, y = mean-true, color = value))+
+  geom_pointrange(aes(ymin=lwr-true,ymax=upr-true),alpha=0.5)+
+  geom_hline(yintercept = 0, color = "red")+
+  ylab("Error on occupancy probability")+
+  labs(color = "Estimate")+
+  scale_color_discrete(labels = c("Intercept coefficient", "Mean probability on whole domain"))+
+  ggtitle("d",subtitle="Error on occupancy probability")+
+  theme_bw()
+
+p4 <- ggplot(data=int_results,aes(x=true,y=mean, color = value))+
+  geom_pointrange(aes(ymin=lwr,ymax=upr),alpha=0.7)+
+  geom_point(aes(y=true),color="red")+
+  ylab("Average occupancy probability")+
+    labs(color = "Estimate")+
+  scale_color_discrete(labels = c("Intercept coefficient", "Mean probability on whole domain"))+
+  ylim(0,1)+
+  xlim(0,1)+
+  ggtitle("c",subtitle="Overall occupancy estimation")+
+  theme_bw()
+
+p5 <- ggplot(data=int_results,aes(x=true,y=mean, color = value))+
+  geom_pointrange(aes(ymin=lwr,ymax=upr),alpha=0.7)+
+  geom_point(aes(y=true),color="red")+
+  ylab("Average occupancy probability")+
+    labs(color = "Estimate")+
+  scale_color_discrete(labels = c("Intercept coefficient", "Mean probability on whole domain"))+
+  ylim(0,1)+
+  xlim(0,1)+
+    facet_wrap(factor(true_trend, labels = paste("Trend:", unique(int_results$true_trend))) ~.)+
+  ggtitle("c",subtitle="Overall occupancy estimation")+
+  theme_bw()
+
+p6 <- ggplot(data = int_results, aes(x = true, y = mean-true, color = value))+
+  geom_pointrange(aes(ymin=lwr-true,ymax=upr-true),alpha=0.5)+
+  geom_hline(yintercept = 0, color = "red")+
+  ylab("Error on occupancy probability")+
+  labs(color = "Estimate")+
+  scale_color_discrete(labels = c("Intercept coefficient", "Mean probability on whole domain"))+
+  facet_wrap(factor(true_trend, labels = paste("Trend:", unique(int_results$true_trend))) ~.)+
+  ggtitle("d",subtitle="Error on occupancy probability")+
+  theme_bw()
+p1
+p2
+p4
+p3
+p5
+p6
 ```
 
